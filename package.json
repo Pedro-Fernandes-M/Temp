@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "apexcharts": "^4.5.0",
-    "axios": "^1.8.1",
     "crypto-js": "^4.2.0",
     "pdf-lib": "^1.17.1",
     "vue": "^3.5.13",

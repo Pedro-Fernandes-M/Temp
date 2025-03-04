@@ -1,6 +1,5 @@
 import { createStore } from 'vuex'
 import CryptoJS from 'crypto-js'
-import axios from 'axios'
 import { PDFDocument, rgb } from 'pdf-lib'
 
 const store = createStore({
@@ -225,6 +224,7 @@ const store = createStore({
             }
           })
           .catch((error) => {
+            console.error(data)
             console.error('Error:', error)
           })
       }
