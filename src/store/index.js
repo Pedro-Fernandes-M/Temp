@@ -174,6 +174,7 @@ const store = createStore({
             sign: sign,
             t: timestamp,
             sign_method: 'HMAC-SHA256',
+            mode: 'cors',
             nonce: nonce,
           }
         } else if (payload.mode === 3) {
@@ -190,7 +191,7 @@ const store = createStore({
 
         // Make the axios request
         axios
-          .get(import.meta.env.VITE_API_HOST + url, { headers })
+          .get('/api' + url, { headers })
           .then((response) => {
             if (payload.mode == 1 || payload.mode == 2) {
               state.commit('setAccessToken', response.data.result.access_token)
