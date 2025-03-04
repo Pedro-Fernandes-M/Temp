@@ -209,7 +209,7 @@ const store = createStore({
               state.commit('setRefreshToken', data.result.refresh_token)
               setTimeout(() => {
                 state.dispatch('getData', { mode: 2 })
-              }, data.result.expire_time)
+              }, data.result.expire_time - 300)
             } else {
               let logs = data.result.logs
               const array = []
