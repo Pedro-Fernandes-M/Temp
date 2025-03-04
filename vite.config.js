@@ -13,13 +13,4 @@ export default defineConfig({
     },
   },
   base: '/Temp/',
-  server: {
-    proxy: {
-      '/api': {
-        target: 'https://openapi.tuyaeu.com', // The API's base URL
-        changeOrigin: true, // Ensures the origin is modified to match the target
-        rewrite: (path) => path.replace(/^\/api/, ''), // Removes '/api' prefix before forwarding
-      },
-    },
-  },
 })

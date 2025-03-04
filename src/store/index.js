@@ -176,6 +176,7 @@ const store = createStore({
             sign_method: 'HMAC-SHA256',
             mode: 'cors',
             nonce: nonce,
+            'Access-Control-Allow-Origin': '*',
           }
         } else if (payload.mode === 3) {
           headers = {
@@ -186,23 +187,32 @@ const store = createStore({
             sign_method: 'HMAC-SHA256',
             mode: 'cors',
             'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
           }
         }
 
         // Make the axios request
-        axios
-          .get('/api' + url, { headers })
+        fetch(`${import.meta.env.VITE_API_HOST}${url}`, {
+          method: 'GET',
+          headers: headers, // Use the headers object directly
+        })
           .then((response) => {
-            if (payload.mode == 1 || payload.mode == 2) {
-              state.commit('setAccessToken', response.data.result.access_token)
-              state.commit('setRefreshToken', response.data.result.refresh_token)
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`)
+            }
+            return response.json()
+          })
+          .then((data) => {
+            if (payload.mode === 1 || payload.mode === 2) {
+              state.commit('setAccessToken', data.result.access_token)
+              state.commit('setRefreshToken', data.result.refresh_token)
               setTimeout(() => {
                 state.dispatch('getData', { mode: 2 })
-              }, response.data.result.expire_time)
+              }, data.result.expire_time)
             } else {
-              let data = response.data.result.logs
+              let logs = data.result.logs
               const array = []
-              data.forEach((element) => {
+              logs.forEach((element) => {
                 const newElement = {
                   value: element.value,
                   event_time: element.event_time,
@@ -210,8 +220,8 @@ const store = createStore({
                 }
                 array.push(newElement)
               })
-              data = calculateDailyAverages(array)
-              state.commit('setLog', data)
+              logs = calculateDailyAverages(array)
+              state.commit('setLog', logs)
             }
           })
           .catch((error) => {
