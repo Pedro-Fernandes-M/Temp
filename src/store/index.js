@@ -202,6 +202,7 @@ const store = createStore({
             return response.json()
           })
           .then((data) => {
+            console.log(data)
             if (payload.mode === 1 || payload.mode === 2) {
               state.commit('setAccessToken', data.result.access_token)
               state.commit('setRefreshToken', data.result.refresh_token)
@@ -224,7 +225,6 @@ const store = createStore({
             }
           })
           .catch((error) => {
-            console.error(data)
             console.error('Error:', error)
           })
       }
