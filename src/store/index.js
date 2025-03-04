@@ -175,7 +175,6 @@ const store = createStore({
             t: timestamp,
             sign_method: 'HMAC-SHA256',
             nonce: nonce,
-            'Permissions-Policy': 'interest-cohort=()',
           }
         } else if (payload.mode === 3) {
           headers = {
@@ -186,7 +185,6 @@ const store = createStore({
             sign_method: 'HMAC-SHA256',
             mode: 'cors',
             'Content-Type': 'application/json',
-            'Permissions-Policy': 'interest-cohort=()',
           }
         }
 
