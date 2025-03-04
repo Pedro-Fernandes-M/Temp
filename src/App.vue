@@ -1,13 +1,27 @@
 <template>
   <router-view v-slot="{ Component }">
-  <transition >
-    <component :is="Component" />
-  </transition>
-</router-view>
+    <transition>
+      <component :is="Component" />
+    </transition>
+  </router-view>
 </template>
 
 <script setup>
 import { RouterView } from 'vue-router'
+
+document.addEventListener('contextmenu', (event) => event.preventDefault())
+
+// Disable F12, Ctrl+Shift+I, and Ctrl+U
+document.addEventListener('keydown', (event) => {
+  if (
+    event.key === 'F12' ||
+    (event.ctrlKey && event.shiftKey && event.key === 'I') ||
+    (event.ctrlKey && event.key === 'J') ||
+    (event.ctrlKey && event.key === 'U')
+  ) {
+    event.preventDefault()
+  }
+})
 </script>
 
 <style scoped>
@@ -50,5 +64,4 @@ nav a {
 nav a:first-of-type {
   border: 0;
 }
-
 </style>
