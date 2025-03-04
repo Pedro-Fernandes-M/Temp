@@ -4,8 +4,8 @@
   "description": "A modern app built with Vite",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#42b883",
+  "background_color": "#1f1d1d",
+  "theme_color": "#1f1d1d",
   "icons": [
     {
       "src": "Icon.ico",
