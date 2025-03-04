@@ -1,0 +1,9 @@
+#app{
+    display: grid;
+    margin: 1lvw;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+}
+
+body{
+    background: #1f1d1d;
+}
