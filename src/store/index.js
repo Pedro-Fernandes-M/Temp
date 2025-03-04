@@ -203,6 +203,7 @@ const store = createStore({
           })
           .then((data) => {
             console.log(data)
+            console.log(payload.mode)
             if (payload.mode === 1 || payload.mode === 2) {
               state.commit('setAccessToken', data.result.access_token)
               state.commit('setRefreshToken', data.result.refresh_token)
@@ -226,6 +227,12 @@ const store = createStore({
           })
           .catch((error) => {
             console.error('Error:', error)
+            if (error.msg === 'token is expired') {
+              alert('Token expirado! Por favor, efetue o login novamente.')
+              state.commit('setAccessToken', null)
+              state.commit('setRefreshToken', null)
+              state.dispatch('getData', { mode: 1 })
+            }
           })
       }
 
