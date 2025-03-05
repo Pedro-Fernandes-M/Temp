@@ -175,7 +175,6 @@ const store = createStore({
             sign_method: 'HMAC-SHA256',
             mode: 'cors',
             nonce: nonce,
-            'Access-Control-Allow-Origin': '*',
           }
         } else if (payload.mode === 3) {
           headers = {
@@ -186,7 +185,6 @@ const store = createStore({
             sign_method: 'HMAC-SHA256',
             mode: 'cors',
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
           }
         }
 
