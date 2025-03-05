@@ -2,7 +2,7 @@
   "name": "Sensores",
   "short_name": "Sensores",
   "description": "A modern app built with Vite",
-  "start_url": "/",
+  "start_url": "/Temp/",
   "display": "standalone",
   "background_color": "#1f1d1d",
   "theme_color": "#1f1d1d",
