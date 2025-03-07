@@ -22,6 +22,32 @@ document.addEventListener('keydown', (event) => {
     event.preventDefault()
   }
 })
+
+function check() {
+  let lastWidth = window.outerWidth
+  let lastHeight = window.outerHeight
+
+  // Monitor for DevTools being opened
+  setInterval(function () {
+    if (window.outerWidth !== lastWidth || window.outerHeight !== lastHeight) {
+      console.log('DevTools detected! Disabling app features.')
+
+      // Stop further requests by overriding fetch (can also block other requests like axios)
+      window.fetch = function () {
+        console.log('Fetch request blocked due to DevTools being open.')
+        return Promise.resolve()
+      }
+
+      // Disable other sensitive features of your app here
+      // For example, disable API calls or hide sensitive parts of the UI
+      document.body.innerHTML = '<h1>DevTools detected. App is disabled.</h1>'
+    }
+
+    lastWidth = window.outerWidth
+    lastHeight = window.outerHeight
+  }, 1000) // Check every second
+}
+check()
 </script>
 
 <style scoped>

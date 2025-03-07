@@ -189,7 +189,7 @@ const store = createStore({
         }
 
         // Make the axios request
-        fetch(`${import.meta.env.VITE_API_HOST}${url}`, {
+        fetch(import.meta.env.VITE_API_HOST + url, {
           method: 'GET',
           headers: headers, // Use the headers object directly
         })
@@ -200,15 +200,13 @@ const store = createStore({
             return response.json()
           })
           .then((data) => {
-            console.log(data)
-            console.log(payload.mode)
             if (payload.mode === 1 || payload.mode === 2) {
               state.commit('setAccessToken', data.result.access_token)
               state.commit('setRefreshToken', data.result.refresh_token)
               setTimeout(() => {
                 state.dispatch('getData', { mode: 2 })
               }, data.result.expire_time - 300)
-            } else {
+            } else if (payload.mode === 3) {
               let logs = data.result.logs
               const array = []
               logs.forEach((element) => {
@@ -220,7 +218,9 @@ const store = createStore({
                 array.push(newElement)
               })
               logs = calculateDailyAverages(array)
+
               state.commit('setLog', logs)
+              state.dispatch('sortLogs')
             }
           })
           .catch((error) => {
@@ -236,6 +236,24 @@ const store = createStore({
 
       // Call the API request function
       makeApiRequest()
+    },
+    sortLogs(state) {
+      const logs = state.getters.getLogs
+
+      const sortLogs = logs.sort((a, b) => {
+        // Extract day and month from the "day" field (format: DD/MM)
+        const [dayA, monthA] = a.day.split('/').map(Number)
+        const [dayB, monthB] = b.day.split('/').map(Number)
+
+        // Sort by month first
+        if (monthA !== monthB) {
+          return monthA - monthB
+        }
+        // Then sort by day
+        return dayA - dayB
+      })
+      state.commit('clearLog')
+      state.commit('setLog', sortLogs)
     },
     async createPDF(state) {
       let month1
@@ -402,30 +420,32 @@ const store = createStore({
       })
 
       let records = localStorage.getItem('records')
+
       const [firstDay, lastDay] = [
-        store.getters.getLogs[0]?.day,
-        store.getters.getLogs[store.getters.getLogs.length - 1]?.day,
+        store.getters.getLogs[0].day,
+        store.getters.getLogs[store.getters.getLogs.length - 1].day,
       ]
       if (records) {
         records = JSON.parse(records)
+
         records.forEach((record) => {
           if (record.firstDay === firstDay && record.lastDay === lastDay) {
             return
           } else {
-            const days = lastDay - record.lastDay
-            const save = []
-            for (let i = 0; i < days; i++) {
-              save.push(store.getters.getLogs[store.getters.getLogs.length - i])
-            }
-            records.push({
-              firstDay: save[0].day,
-              lastDay: save[save.length - 1].day,
-              data: save,
-            })
-            localStorage.setItem('records', JSON.stringify(records))
+            const save = store.getters.getLogs
+
+            const newRecords = [
+              {
+                firstDay: save[0].day,
+                lastDay: save[save.length - 1].day,
+                data: save,
+              },
+            ]
+            localStorage.setItem('records', null)
+            localStorage.setItem('records', JSON.stringify(newRecords))
           }
         })
-      } else {
+      } else if (records === null) {
         localStorage.setItem(
           'records',
           JSON.stringify([

@@ -1,7 +1,7 @@
 <template>
   <div class="justify">
     <h2>Temp. Retorno</h2>
-    <apexchart type="area" height="100%" :options="options" :series="series"></apexchart>
+    <apexchart type="area" height="75%" :options="options" :series="series"></apexchart>
     <div class="center">
       <button class="button" @click="getLog()">Get Data</button>
       <br />
@@ -42,42 +42,53 @@ async function getLog() {
   let records = localStorage.getItem('records')
   if (store.getters.getAccessToken === null) {
     alert('Access token not available')
+    store.dispatch('getData', { mode: 1 })
     return
   }
   if (records) {
     records = JSON.parse(records)
-    const day = new Date().getDay()
+    const day = new Date().getDate()
     const month = new Date().getMonth() + 1
     const month1 = new Date().getMonth()
-    console.log(day, month)
+
     records.forEach((record) => {
       if (
-        record.firstDay == (day - 7).toString().padStart(2, '0') + '/' + month &&
-        record.lastDay == day.toString().padStart(2, '0') + '/' + day - 7 < 0
-          ? month
-          : month1
+        record.lastDay ==
+        day.toString().padStart(2, '0') +
+          '/' +
+          (day - 7 < 0 ? month : month1).toString().padStart(2, '0')
       ) {
         store.commit('clearLog')
         store.commit('setLink', null)
-        console.log(record)
         store.commit('setLog', record.data)
         return
-      } else if (record.lastDay != day) {
+      } else if (day - parseInt(record.lastDay.split('/')[0]) < 7) {
         store.commit('clearLog')
         store.commit('setLink', null)
-        const i = day - record.lastDay
-        for (let f = 0; f < i; f++) {
-          const hours = (i - f) * 24
-          const timer = (f + 1 - i) * 100
-          setTimeout(() => {
-            store.dispatch('getData', {
-              mode: 3,
-              deviceId: deviceId,
-              startTime: getNoonTime() - (hours * 60 * 60 * 1000 + 25 * 60 * 1000),
-              endTime: getNoonTime() - hours * 60 * 60 * 1000,
-            })
-          }, timer)
+        store.commit('setLog', record.data)
+        const i = day - parseInt(record.lastDay.split('/')[0])
+        if (i >= 2) {
+          for (let f = 1; f < i; f++) {
+            const hours = (i - f) * 24
+            const timer = (i - f) * 50
+            setTimeout(() => {
+              store.dispatch('getData', {
+                mode: 3,
+                deviceId: deviceId,
+                startTime: getNoonTime() - (hours * 60 * 60 * 1000 + 25 * 60 * 1000),
+                endTime: getNoonTime() - hours * 60 * 60 * 1000,
+              })
+            }, timer)
+          }
         }
+        setTimeout(() => {
+          store.dispatch('getData', {
+            mode: 3,
+            deviceId: deviceId,
+            startTime: getNoonTime() - 25 * 60 * 1000,
+            endTime: getNoonTime(),
+          })
+        }, i * 50)
       }
     })
   } else {
@@ -86,7 +97,7 @@ async function getLog() {
     for (let i = 0; i < 7; i++) {
       const hours = i * 24
       const timer = (7 - i) * 100
-      console.log(hours)
+
       setTimeout(() => {
         if (i == 0) {
           store.dispatch('getData', {
@@ -111,7 +122,7 @@ async function getLog() {
 //graph
 const yAxis = computed(() => {
   return store.getters.getLogs.map((log) => {
-    return { x: log.day, y: log.value } // Rename day to x and value to y
+    return { x: log.day, y: log.value }
   })
 })
 
