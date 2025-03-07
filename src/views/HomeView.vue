@@ -49,14 +49,11 @@ async function getLog() {
     records = JSON.parse(records)
     const day = new Date().getDate()
     const month = new Date().getMonth() + 1
-    const month1 = new Date().getMonth()
 
     records.forEach((record) => {
       if (
         record.lastDay ==
-        day.toString().padStart(2, '0') +
-          '/' +
-          (day - 7 < 0 ? month : month1).toString().padStart(2, '0')
+        day.toString().padStart(2, '0') + '/' + month.toString().padStart(2, '0')
       ) {
         store.commit('clearLog')
         store.commit('setLink', null)
