@@ -31,9 +31,13 @@ const store = createStore({
       state.refresh_token = refreshToken
     },
     setLog(state, log) {
-      log.forEach((element) => {
-        state.logs.push(element)
-      })
+      if (log.length > 1) {
+        log.forEach((element) => {
+          state.logs.push(element)
+        })
+      } else {
+        state.logs.push(log)
+      }
     },
     clearLog(state) {
       state.logs = []
@@ -58,41 +62,22 @@ const store = createStore({
 
       function calculateDailyAverages(records) {
         // Step 1: Group records by day (event_time is just the day, like 27)
-        let groupedByDay = {}
+        const day = records[0].day
+        let totalValue = 0
+        let count = 0
 
         records.forEach((record) => {
-          // Use `data.event_time` directly since it's just the day (e.g., 27)
-          let day = record.day
-
-          // Initialize the group for this day if it doesn't exist
-          if (!groupedByDay[day]) {
-            groupedByDay[day] = {
-              totalValue: 0,
-              count: 0,
-            }
-          }
-
-          // Add the value to the day's total and increment the count
-          groupedByDay[day].totalValue += parseInt(record.value / 10)
-          groupedByDay[day].count += 1
-          groupedByDay[day].time = record.event_time
+          totalValue += record.value / 10
+          count += 1
         })
 
-        // Step 2: Calculate the average for each day
-        let averages = []
-        for (let day in groupedByDay) {
-          let totalValue = groupedByDay[day].totalValue
-
-          let count = groupedByDay[day].count
-          let average = (totalValue / count).toFixed(1)
-
-          averages.push({
-            event_time: groupedByDay[day].time,
-            day: day,
-            value: average,
-          })
+        const event_time = records[((records.length - 1) / 2).toFixed(0)].event_time
+        const newRecord = {
+          event_time: event_time,
+          day: day,
+          value: (totalValue / count).toFixed(1),
         }
-        return averages
+        return newRecord
       }
 
       // Function to get the current timestamp
@@ -217,10 +202,12 @@ const store = createStore({
                 }
                 array.push(newElement)
               })
-              logs = calculateDailyAverages(array)
 
-              state.commit('setLog', logs)
-              state.dispatch('sortLogs')
+              if (logs.length > 0) {
+                logs = calculateDailyAverages(array)
+                state.commit('setLog', logs)
+              }
+              if (state.getters.getLogs.length > 1) state.dispatch('sortLogs')
             }
           })
           .catch((error) => {
@@ -266,18 +253,25 @@ const store = createStore({
       pdfDoc.setCreationDate(new Date())
 
       let page = pdfDoc.addPage([595, 842])
-      let page1
-      if (new Date().getDay() - 7 < 0) {
+      let page1 = null
+      console.log(
+        state.getters.getLogs[0].day.split('/')[1],
+        (new Date().getMonth() + 1).toString().padStart(2, '0'),
+      )
+      if (
+        state.getters.getLogs[0].day.split('/')[1] !=
+        (new Date().getMonth() + 1).toString().padStart(2, '0')
+      ) {
         page1 = pdfDoc.addPage([595, 842])
-        month1 = new Date().getMonth().toString().padStart(2, '0')
+        month1 = (new Date().getMonth() + 1).toString().padStart(2, '0')
       }
 
       // Obter data atual
       const currentDate = new Date()
       const month =
         page1 != null
-          ? (currentDate.getMonth() + 1).toString().padStart(2, '0')
-          : currentDate.getMonth().toString().padStart(2, '0')
+          ? currentDate.getMonth().toString().padStart(2, '0')
+          : (currentDate.getMonth() + 1).toString().padStart(2, '0')
       const year = currentDate.getFullYear()
       const logs = state.getters.getLogs || null
       const totalPages = pdfDoc.getPageCount()

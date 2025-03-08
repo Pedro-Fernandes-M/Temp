@@ -23,32 +23,52 @@ document.addEventListener('keydown', (event) => {
   }
 })
 
-function check() {
-  let lastWidth = window.outerWidth
-  let lastHeight = window.outerHeight
+function detectDevTools() {
+  const devToolsCheck = new Function('debugger') // Using the `debugger` statement for detection.
+  let isDevToolsOpen = false
 
-  // Monitor for DevTools being opened
-  setInterval(function () {
-    if (window.outerWidth !== lastWidth || window.outerHeight !== lastHeight) {
-      console.log('DevTools detected! Disabling app features.')
+  devToolsCheck() // Initial trigger for the debugger.
 
-      // Stop further requests by overriding fetch (can also block other requests like axios)
-      window.fetch = function () {
-        console.log('Fetch request blocked due to DevTools being open.')
-        return Promise.resolve()
+  setInterval(() => {
+    const start = performance.now()
+    devToolsCheck()
+    const end = performance.now()
+
+    // If `debugger` caused a significant delay, it likely indicates DevTools is open.
+    if (end - start > 100) {
+      if (!isDevToolsOpen) {
+        console.warn('DevTools detected! The app will stop.')
+        isDevToolsOpen = true
+
+        // Actions to take when DevTools is detected
+        stopApp()
       }
-
-      // Disable other sensitive features of your app here
-      // For example, disable API calls or hide sensitive parts of the UI
-      document.body.innerHTML = '<h1>DevTools detected. App is disabled.</h1>'
+    } else {
+      isDevToolsOpen = false
     }
-
-    lastWidth = window.outerWidth
-    lastHeight = window.outerHeight
-  }, 1000) // Check every second
+  }, 500) // Check every 500ms
 }
-check()
+
+// Function to stop the app
+function stopApp() {
+  const displayHeight = window.innerHeight - 100
+  document.body.innerHTML = `<h1 class="color" style="height:${displayHeight}px">Unauthorized Access</h1>`
+  throw new Error('DevTools detected! App execution stopped.')
+}
+
+// Call the detection function
+detectDevTools()
 </script>
+
+<style>
+.color {
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height:;
+}
+</style>
 
 <style scoped>
 .v-enter-active,
