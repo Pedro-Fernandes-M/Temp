@@ -1,7 +1,7 @@
 <template>
   <div class="justify">
     <h2>Temp. Retorno</h2>
-    <apexchart type="area" height="75%" :options="options" :series="series"></apexchart>
+    <apexchart type="line" height="75%" :options="options" :series="series"></apexchart>
     <div class="center">
       <button class="button" @click="getLog()">Get Data</button>
       <br />
@@ -142,23 +142,27 @@ const options = ref({
       },
     },
   },
-  colors: ['#8B0000'],
   dataLabels: {
-    enabled: false,
+    enabled: true,
   },
+  stroke: {
+    curve: 'smooth',
+    width: 2.5,
+  },
+  colors: ['#000000'],
   xaxis: {
     labels: {
       style: {
-        colors: '#FFFFFF', // Specify colors for each label
+        colors: '#000000', // Specify colors for each label
       },
     },
   },
   yaxis: {
-    max: 55,
+    max: 54,
     min: 45,
     labels: {
       style: {
-        colors: '#FFFFFF',
+        colors: '#000000',
       },
     },
   },
@@ -166,13 +170,13 @@ const options = ref({
     yaxis: [
       {
         y: 50, // The y-axis value you want to highlight
-        borderColor: '#FFFF00', // Yellow color for the line
+        borderColor: '#FF0000', // Yellow color for the line
         borderWidth: 2, // Line thickness (optional)
         opacity: 0.8, // Optional opacity for the line
         label: {
           style: {
             color: '#000000', // Text color (black)
-            background: '#FFFF00', // Label background color (yellow)
+            background: '#FF0000', // Label background color (yellow)
           },
         },
       },
@@ -234,7 +238,6 @@ async function getfile() {
 }
 
 h2 {
-  color: white;
   text-align: center;
   margin-bottom: 2rem;
 }
