@@ -159,7 +159,7 @@ const options = ref({
   },
   yaxis: {
     max: 54,
-    min: 45,
+
     labels: {
       style: {
         colors: '#000000',
@@ -170,13 +170,16 @@ const options = ref({
     yaxis: [
       {
         y: 50, // The y-axis value you want to highlight
-        borderColor: '#FF0000', // Yellow color for the line
+        borderColor: '#FF0000', // Line color
         borderWidth: 2, // Line thickness (optional)
         opacity: 0.8, // Optional opacity for the line
         label: {
+          text: '50', // The label text to display
+          position: 'right', // Can be 'left', 'center', or 'right'
           style: {
-            color: '#000000', // Text color (black)
-            background: '#FF0000', // Label background color (yellow)
+            color: '#000000', // Text color
+            background: '#FF0000', // Label background color
+            fontSize: '10px', // Optional font size
           },
         },
       },
