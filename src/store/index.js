@@ -9,6 +9,8 @@ const store = createStore({
     refresh_token: null,
     logs: [],
     link: null,
+    date_graph: null,
+    popup: false,
   },
   getters: {
     getAccessToken(state) {
@@ -22,6 +24,12 @@ const store = createStore({
     },
     getLink(state) {
       return state.link
+    },
+    getDateGraph(state) {
+      return state.date_graph
+    },
+    getPopup(state) {
+      return state.popup
     },
   },
   mutations: {
@@ -45,6 +53,12 @@ const store = createStore({
     },
     setLink(state, payload) {
       state.link = payload
+    },
+    setDateGraph(state, payload) {
+      state.date_graph = payload
+    },
+    setPopup(state, payload) {
+      state.popup = payload
     },
   },
 
@@ -491,10 +505,9 @@ const store = createStore({
 
       // Data
       const today = new Date()
-      const day = today.getDate()
-      const month = today.toLocaleString('default', { month: 'long' })
       const year = today.getFullYear()
-      const dateText = `Data: ${day} ${month} ${year}`
+      const dateText = `Data: ${store.getters.getDateGraph} de ${year}`
+      console.log(dateText)
       page.drawText(dateText, {
         x: margin,
         y: textYStart - 40,
@@ -517,7 +530,7 @@ const store = createStore({
 
       // Calculando as dimensões finais da imagem ajustada
       const imgWidth = width * scale
-      const imgHeight = height * scale
+      const imgHeight = height * scale * 1.1
 
       // Posicionando o gráfico no centro da página horizontalmente e verticalmente
       const imgX = (842 - imgWidth) / 2 // Centralizado horizontalmente
@@ -543,6 +556,8 @@ const store = createStore({
       link.href = URL.createObjectURL(blob)
       link.download = filename // Usando o nome gerado com a data
       link.click() // Aciona o download automaticamente
+
+      store
     },
   },
 })

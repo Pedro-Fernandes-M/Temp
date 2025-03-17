@@ -20,14 +20,22 @@
     <Transition>
       <div class="container" v-if="store.getters.getLogs.length > 0">
         <button class="button" @click="getfile()">
-          Export to Values
+          Export Values
           <IconPDF></IconPDF>
         </button>
-        <button class="button" @click="store.dispatch('generateGraph')">
+        <button class="button" @click="store.commit('setPopup', true)">
           Export Graph
           <IconPDF></IconPDF>
         </button>
       </div>
+    </Transition>
+    <Transition>
+      <InputPop
+        v-if="popup"
+        title="Data gráfico"
+        function="1"
+        message="Exemplo: diaInício/mês-diaFim/mês"
+      ></InputPop>
     </Transition>
   </div>
 </template>
@@ -36,8 +44,12 @@
 import { computed, ref } from 'vue'
 import { useStore } from 'vuex'
 import IconPDF from '@/components/icons/IconPDF.vue'
+import InputPop from '@/components/InputPop.vue'
 
 const store = useStore()
+const popup = computed(() => {
+  return store.getters.getPopup
+})
 const deviceId = import.meta.env.VITE_DEVICE_ID
 
 if (store.getters.getAccessToken === null) {

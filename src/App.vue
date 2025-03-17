@@ -9,7 +9,7 @@
 <script setup>
 import { RouterView } from 'vue-router'
 
-/* document.addEventListener('contextmenu', (event) => event.preventDefault())
+document.addEventListener('contextmenu', (event) => event.preventDefault())
 
 // Disable F12, Ctrl+Shift+I, and Ctrl+U
 document.addEventListener('keydown', (event) => {
@@ -57,7 +57,7 @@ function stopApp() {
 }
 
 // Call the detection function
-detectDevTools() */
+detectDevTools()
 </script>
 
 <style>
