@@ -1,19 +1,34 @@
 <template>
   <div class="justify">
     <h2>Temp. Retorno</h2>
-    <apexchart type="line" height="75%" :options="options" :series="series"></apexchart>
+    <div id="chart">
+      <apexchart type="line" height="130%" :options="options" :series="series"></apexchart>
+      <div class="margin">
+        <div class="border">
+          <span>Legenda</span>
+          <div class="flex">
+            <div class="line"></div>
+            <span>50°C</span>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="center">
       <button class="button" @click="getLog()">Get Data</button>
-      <br />
-      <Transition>
-        <div class="center" v-if="store.getters.getLogs.length > 0">
-          <button class="button" @click="getfile()">
-            Export to PDF
-            <IconPDF></IconPDF>
-          </button>
-        </div>
-      </Transition>
     </div>
+    <br />
+    <Transition>
+      <div class="container" v-if="store.getters.getLogs.length > 0">
+        <button class="button" @click="getfile()">
+          Export to Values
+          <IconPDF></IconPDF>
+        </button>
+        <button class="button" @click="store.dispatch('generateGraph')">
+          Export Graph
+          <IconPDF></IconPDF>
+        </button>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -118,9 +133,10 @@ async function getLog() {
 
 //graph
 const yAxis = computed(() => {
-  return store.getters.getLogs.map((log) => {
+  const logs = store.getters.getLogs.map((log) => {
     return { x: log.day, y: log.value }
   })
+  return logs
 })
 
 //chart
@@ -173,15 +189,6 @@ const options = ref({
         borderColor: '#FF0000', // Line color
         borderWidth: 2, // Line thickness (optional)
         opacity: 0.8, // Optional opacity for the line
-        label: {
-          text: '50', // The label text to display
-          position: 'right', // Can be 'left', 'center', or 'right'
-          style: {
-            color: '#000000', // Text color
-            background: '#FF0000', // Label background color
-            fontSize: '10px', // Optional font size
-          },
-        },
       },
     ],
   },
@@ -189,7 +196,7 @@ const options = ref({
 
 const series = ref([
   {
-    name: 'Temp(Cº)',
+    name: 'Temp(°C)',
     data: yAxis,
   },
 ])
@@ -240,6 +247,37 @@ async function getfile() {
   width: 100%;
 }
 
+.line {
+  border-bottom: 2px dotted red;
+  width: 120%;
+  height: 50%;
+  margin-top: 0.5rem;
+}
+.flex {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+.margin {
+  margin-top: 1.5rem;
+  margin-right: 0.55rem;
+  font-size: small;
+  display: flex;
+  justify-content: right;
+}
+.border {
+  border: 1px solid black;
+  padding: 0.3rem;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  gap: 0.5rem;
+}
+
 h2 {
   text-align: center;
   margin-bottom: 2rem;
@@ -249,9 +287,10 @@ h2 {
   display: flex;
   flex-direction: column;
   text-align: center;
-  margin: 1rem;
+
   justify-content: center;
   align-items: center;
+  margin-top: 1.05rem;
 }
 .text {
   color: white;

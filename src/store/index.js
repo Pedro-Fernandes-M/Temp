@@ -1,6 +1,7 @@
 import { createStore } from 'vuex'
 import CryptoJS from 'crypto-js'
 import { PDFDocument, rgb } from 'pdf-lib'
+import html2canvas from 'html2canvas'
 
 const store = createStore({
   state: {
@@ -451,6 +452,97 @@ const store = createStore({
           ]),
         )
       }
+    },
+    async generateGraph() {
+      // Capturando o gráfico como imagem usando html2canvas
+      const canvas = await html2canvas(document.querySelector('#chart'))
+      const imgData = canvas.toDataURL('image/png') // Obtendo a imagem como PNG
+
+      // Criando o PDF com pdf-lib
+      const pdfDoc = await PDFDocument.create()
+
+      // Definindo metadados
+      pdfDoc.setTitle('REGISTO LEGIONELLA')
+      pdfDoc.setAuthor('Filipe Alves Fernandes')
+      pdfDoc.setProducer('Adobe PDF Library 15.0')
+      pdfDoc.setCreator('Adobe Acrobat Pro DC')
+      pdfDoc.setCreationDate(new Date())
+
+      // Adicionando uma página no formato A4 horizontal (842 x 595 px)
+      const page = pdfDoc.addPage([842, 595]) // Página no formato paisagem
+      const margin = 30 // Margens laterais
+      const fontSize = 12
+
+      // Cabeçalho
+      const textYStart = 550 // Posição inicial do texto no topo
+      page.drawText('CONTROLO ÁGUA QUENTE - LEGIONELLA', {
+        x: margin,
+        y: textYStart,
+        size: fontSize + 4,
+        color: rgb(0, 0, 0),
+      })
+
+      page.drawText('INNSIDE by Meliã Braga Centro', {
+        x: margin,
+        y: textYStart - 20,
+        size: fontSize + 2,
+        color: rgb(0, 0, 0),
+      })
+
+      // Data
+      const today = new Date()
+      const day = today.getDate()
+      const month = today.toLocaleString('default', { month: 'long' })
+      const year = today.getFullYear()
+      const dateText = `Data: ${day} ${month} ${year}`
+      page.drawText(dateText, {
+        x: margin,
+        y: textYStart - 40,
+        size: fontSize + 2,
+        color: rgb(0, 0, 0),
+      })
+
+      // Embedando a imagem PNG no PDF
+      const pngImage = await pdfDoc.embedPng(imgData)
+
+      // Obtendo as dimensões da imagem original
+      const { width, height } = pngImage
+
+      // Definindo os limites máximos considerando as margens e a área da página
+      const maxWidth = 842 - 60 // Largura máxima considerando margens
+      const maxHeight = 595 - 60 // Altura máxima considerando margens
+
+      // Calculando a escala para ajustar a imagem mantendo as proporções
+      const scale = Math.min(maxWidth / width, maxHeight / height) // Escala para ajustar ao espaço disponível
+
+      // Calculando as dimensões finais da imagem ajustada
+      const imgWidth = width * scale
+      const imgHeight = height * scale
+
+      // Posicionando o gráfico no centro da página horizontalmente e verticalmente
+      const imgX = (842 - imgWidth) / 2 // Centralizado horizontalmente
+      const imgY = (595 - imgHeight) / 2 // Centralizado verticalmente
+
+      // Adicionando a imagem ao PDF com as dimensões ajustadas
+      page.drawImage(pngImage, {
+        x: imgX,
+        y: imgY,
+        width: imgWidth,
+        height: imgHeight,
+      })
+
+      // Salvando o PDF
+      const pdfBytes = await pdfDoc.save()
+
+      // Criando o nome do arquivo com a data
+      const filename = `grafico_legionella_${today.toISOString().split('T')[0]}.pdf`
+
+      // Criando um link para download do PDF
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = filename // Usando o nome gerado com a data
+      link.click() // Aciona o download automaticamente
     },
   },
 })
