@@ -548,7 +548,7 @@ const store = createStore({
       const pdfBytes = await pdfDoc.save()
 
       // Criando o nome do arquivo com a data
-      const filename = `grafico_legionella_${today.toISOString().split('T')[0]}.pdf`
+      const filename = `grafico_legionella_${dateText.replace(/ /g, '_').replace(/\//g, '-')}.pdf`
 
       // Criando um link para download do PDF
       const blob = new Blob([pdfBytes], { type: 'application/pdf' })
