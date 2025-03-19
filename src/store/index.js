@@ -207,6 +207,7 @@ const store = createStore({
                 state.dispatch('getData', { mode: 2 })
               }, data.result.expire_time - 300)
             } else if (payload.mode === 3) {
+              console.log(data)
               let logs = data.result.logs
               const array = []
               logs.forEach((element) => {
@@ -269,10 +270,7 @@ const store = createStore({
 
       let page = pdfDoc.addPage([595, 842])
       let page1 = null
-      console.log(
-        state.getters.getLogs[0].day.split('/')[1],
-        (new Date().getMonth() + 1).toString().padStart(2, '0'),
-      )
+
       if (
         state.getters.getLogs[0].day.split('/')[1] !=
         (new Date().getMonth() + 1).toString().padStart(2, '0')
@@ -507,7 +505,7 @@ const store = createStore({
       const today = new Date()
       const year = today.getFullYear()
       const dateText = `Data: ${store.getters.getDateGraph} de ${year}`
-      console.log(dateText)
+
       page.drawText(dateText, {
         x: margin,
         y: textYStart - 40,

@@ -26,10 +26,8 @@ function choose(choice) {
 }
 
 function dateGraph() {
-  console.log(validateInput(input.value))
   if (validateInput(input.value)) {
     store.commit('setDateGraph', input.value)
-    console.log(input.value)
     store.commit('setPopup', false)
     if (store.getters.getDateGraph != null) {
       store.dispatch('generateGraph')
@@ -54,14 +52,11 @@ watch(
 function validateInput(value) {
   // Verificar se o valor é nulo ou indefinido
   if (value === null || value === undefined) {
-    console.log(false)
     return false
   }
 
   // Regex para validar o formato dd/mm-dd/mm
   const regex = /^([0-2][0-9]|3[0-1])\/(0[1-9]|1[0-2])-([0-2][0-9]|3[0-1])\/(0[1-9]|1[0-2])$/
-
-  console.log(regex.test(value))
   return regex.test(value) // Retorna true se o formato for válido
 }
 </script>
