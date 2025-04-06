@@ -65,17 +65,28 @@ function getNoonTime() {
 
   return now.getTime()
 }
+
+const isMoreThan7Days = (record) => {
+  const [day, month] = record.split('/').map(Number)
+  const lastDate = new Date(new Date().getFullYear(), month - 1, day) // Create Date object
+  return (new Date() - lastDate) / (1000 * 60 * 60 * 24) > 7
+}
+
 async function getLog() {
   let records = localStorage.getItem('records')
   if (store.getters.getAccessToken === null) {
-    alert('Access token not available')
     store.dispatch('getData', { mode: 1 })
+    alert('Access token not available')
     return
   }
   if (records) {
     records = JSON.parse(records)
     const day = new Date().getDate()
     const month = new Date().getMonth() + 1
+
+    if (isMoreThan7Days(records[0].lastDay) == true) {
+      console.log('Já passaram mais de 7 dias desde dia ' + records[0].lastDay + '!')
+    }
 
     records.forEach((record) => {
       if (
@@ -86,7 +97,7 @@ async function getLog() {
         store.commit('setLink', null)
         store.commit('setLog', record.data)
         return
-      } else if (day - parseInt(record.lastDay.split('/')[0]) < 7) {
+      } else if (isMoreThan7Days(record.lastDay) === false) {
         store.commit('clearLog')
         store.commit('setLink', null)
         store.commit('setLog', record.data)
@@ -113,9 +124,36 @@ async function getLog() {
             endTime: getNoonTime(),
           })
         }, i * 50)
+      } else {
+        store.commit('clearLog')
+        store.commit('setLink', null)
+        store.commit('setLog', record.data)
+        for (let i = 0; i < 7; i++) {
+          const hours = i * 24
+          const timer = (7 - i) * 100
+
+          setTimeout(() => {
+            if (i == 0) {
+              store.dispatch('getData', {
+                mode: 3,
+                deviceId: deviceId,
+                startTime: getNoonTime() - 25 * 60 * 1000,
+                endTime: getNoonTime(),
+              })
+            } else {
+              store.dispatch('getData', {
+                mode: 3,
+                deviceId: deviceId,
+                startTime: getNoonTime() - (hours * 60 * 60 * 1000 + 25 * 60 * 1000),
+                endTime: getNoonTime() - hours * 60 * 60 * 1000,
+              })
+            }
+          }, timer)
+        }
       }
     })
   } else {
+    console.log('oi')
     store.commit('clearLog')
     store.commit('setLink', null)
     for (let i = 0; i < 7; i++) {

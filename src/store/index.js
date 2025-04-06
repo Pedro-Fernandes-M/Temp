@@ -207,7 +207,6 @@ const store = createStore({
                 state.dispatch('getData', { mode: 2 })
               }, data.result.expire_time - 300)
             } else if (payload.mode === 3) {
-              console.log(data)
               let logs = data.result.logs
               const array = []
               logs.forEach((element) => {
@@ -452,7 +451,7 @@ const store = createStore({
             localStorage.setItem('records', JSON.stringify(newRecords))
           }
         })
-      } else if (records === null) {
+      } else {
         localStorage.setItem(
           'records',
           JSON.stringify([
