@@ -153,7 +153,6 @@ async function getLog() {
       }
     })
   } else {
-    console.log('oi')
     store.commit('clearLog')
     store.commit('setLink', null)
     for (let i = 0; i < 7; i++) {
