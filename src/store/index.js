@@ -424,7 +424,9 @@ const store = createStore({
 
         state.commit('setLink', url)
       })
-
+      state.dispatch('saveData')
+    },
+    saveData() {
       let records = localStorage.getItem('records')
 
       const [firstDay, lastDay] = [
@@ -464,7 +466,7 @@ const store = createStore({
         )
       }
     },
-    async generateGraph() {
+    async generateGraph(state) {
       // Capturando o gráfico como imagem usando html2canvas
       const canvas = await html2canvas(document.querySelector('#chart'))
       const imgData = canvas.toDataURL('image/png') // Obtendo a imagem como PNG
@@ -554,7 +556,7 @@ const store = createStore({
       link.download = filename // Usando o nome gerado com a data
       link.click() // Aciona o download automaticamente
 
-      store
+      state.dispatch('saveData')
     },
   },
 })
