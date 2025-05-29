@@ -11,7 +11,7 @@ import { RouterView } from 'vue-router'
 
 document.addEventListener('contextmenu', (event) => event.preventDefault())
 
-// Disable F12, Ctrl+Shift+I, and Ctrl+U
+// Disable F12, Ctrl+Shift+I
 document.addEventListener('keydown', (event) => {
   if (
     event.key === 'F12' ||
