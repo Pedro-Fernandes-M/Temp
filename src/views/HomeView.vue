@@ -177,26 +177,28 @@ async function getLog() {
   } else {
     store.commit('clearLog')
     store.commit('setLink', null)
+
     for (let i = 0; i < 7; i++) {
       const hours = i * 24
+      const timer = (7 - i) * 100
 
-      const startTime =
-        i === 0
-          ? getNoonTime() - 25 * 60 * 1000
-          : getNoonTime() - (hours * 60 * 60 * 1000 + 25 * 60 * 1000)
-
-      const endTime = i === 0 ? getNoonTime() : getNoonTime() - hours * 60 * 60 * 1000
-
-      try {
-        await store.dispatch('getData', {
-          mode: 3,
-          deviceId: deviceId,
-          startTime,
-          endTime,
-        })
-      } catch (error) {
-        console.error(`Erro ao buscar dados para o dia ${i}:`, error)
-      }
+      setTimeout(() => {
+        if (i == 0) {
+          store.dispatch('getData', {
+            mode: 3,
+            deviceId: deviceId,
+            startTime: getNoonTime() - 25 * 60 * 1000,
+            endTime: getNoonTime(),
+          })
+        } else {
+          store.dispatch('getData', {
+            mode: 3,
+            deviceId: deviceId,
+            startTime: getNoonTime() - (hours * 60 * 60 * 1000 + 25 * 60 * 1000),
+            endTime: getNoonTime() - hours * 60 * 60 * 1000,
+          })
+        }
+      }, timer)
     }
   }
 }
