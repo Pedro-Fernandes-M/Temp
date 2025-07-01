@@ -72,6 +72,25 @@ const isMoreThan7Days = (record) => {
   return (new Date() - lastDate) / (1000 * 60 * 60 * 24) > 7
 }
 
+function getDaysSinceLast(record) {
+  const [d, m] = record.lastDay.split('/').map(Number)
+  const today = new Date()
+  const thisYear = today.getFullYear()
+
+  // Cria data completa assumindo o mesmo ano
+  let lastDate = new Date(thisYear, m - 1, d)
+  let now = new Date(thisYear, today.getMonth(), today.getDate())
+
+  // Se a data do registro estiver no futuro (ex: hoje é 1 e lastDay é 29),
+  // assumimos que é do mês anterior
+  if (lastDate > now) {
+    lastDate = new Date(thisYear, m - 2, d) // mês anterior
+  }
+
+  const diffInMs = now - lastDate
+  return Math.floor(diffInMs / (1000 * 60 * 60 * 24))
+}
+
 async function getLog() {
   let records = localStorage.getItem('records')
   if (store.getters.getAccessToken === null) {
@@ -85,7 +104,8 @@ async function getLog() {
     const month = new Date().getMonth() + 1
 
     if (isMoreThan7Days(records[0].lastDay) == true) {
-      console.log('Já passaram mais de 7 dias desde dia ' + records[0].lastDay + '!')
+      alert('Já passaram mais de 7 dias desde ultimo registo  (' + records[0].lastDay + ') !')
+      alert('Serão recolhidos apenas os últimos 7 dias!')
     }
 
     records.forEach((record) => {
@@ -101,8 +121,9 @@ async function getLog() {
         store.commit('clearLog')
         store.commit('setLink', null)
         store.commit('setLog', record.data)
-        const i = day - parseInt(record.lastDay.split('/')[0])
+        const i = getDaysSinceLast(record)
         if (i >= 2) {
+          console.log('oi', i)
           for (let f = 1; f < i; f++) {
             const hours = (i - f) * 24
             const timer = (i - f) * 50
@@ -116,6 +137,7 @@ async function getLog() {
             }, timer)
           }
         }
+        console.log('oi1', i)
         setTimeout(() => {
           store.dispatch('getData', {
             mode: 3,
@@ -157,25 +179,24 @@ async function getLog() {
     store.commit('setLink', null)
     for (let i = 0; i < 7; i++) {
       const hours = i * 24
-      const timer = (7 - i) * 100
 
-      setTimeout(() => {
-        if (i == 0) {
-          store.dispatch('getData', {
-            mode: 3,
-            deviceId: deviceId,
-            startTime: getNoonTime() - 25 * 60 * 1000,
-            endTime: getNoonTime(),
-          })
-        } else {
-          store.dispatch('getData', {
-            mode: 3,
-            deviceId: deviceId,
-            startTime: getNoonTime() - (hours * 60 * 60 * 1000 + 25 * 60 * 1000),
-            endTime: getNoonTime() - hours * 60 * 60 * 1000,
-          })
-        }
-      }, timer)
+      const startTime =
+        i === 0
+          ? getNoonTime() - 25 * 60 * 1000
+          : getNoonTime() - (hours * 60 * 60 * 1000 + 25 * 60 * 1000)
+
+      const endTime = i === 0 ? getNoonTime() : getNoonTime() - hours * 60 * 60 * 1000
+
+      try {
+        await store.dispatch('getData', {
+          mode: 3,
+          deviceId: deviceId,
+          startTime,
+          endTime,
+        })
+      } catch (error) {
+        console.error(`Erro ao buscar dados para o dia ${i}:`, error)
+      }
     }
   }
 }
