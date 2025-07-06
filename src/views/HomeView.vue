@@ -4,6 +4,9 @@
     <div id="chart">
       <apexchart type="line" height="130%" :options="options" :series="series"></apexchart>
       <div class="margin">
+        <div class="side">
+          <VueDatePicker v-model="date" range class="width" format="d/M/yyyy" />
+        </div>
         <div class="border">
           <span>Legenda</span>
           <div class="flex">
@@ -14,17 +17,17 @@
       </div>
     </div>
     <div class="center">
-      <button class="button" @click="getLog()">Get Data</button>
+      <button class="button" @click="getLog()">Obter Dados</button>
     </div>
     <br />
     <Transition>
       <div class="container" v-if="store.getters.getLogs.length > 0">
         <button class="button" @click="getfile()">
-          Export Values
+          Exportar Relatório
           <IconPDF></IconPDF>
         </button>
         <button class="button" @click="store.commit('setPopup', true)">
-          Export Graph
+          Exportar Gráfico
           <IconPDF></IconPDF>
         </button>
       </div>
@@ -42,7 +45,9 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { toRaw } from 'vue'
 import { useStore } from 'vuex'
+
 import IconPDF from '@/components/icons/IconPDF.vue'
 import InputPop from '@/components/InputPop.vue'
 
@@ -57,6 +62,13 @@ if (store.getters.getAccessToken === null) {
 } else {
   store.dispatch('getData', { mode: 2 })
 }
+
+const endDate = new Date()
+const startDate = new Date(endDate)
+startDate.setHours(0, 0, 0, 0)
+startDate.setDate(endDate.getDate() - 7)
+const date = ref()
+date.value = [startDate, endDate]
 
 //fetch
 function getNoonTime() {
@@ -123,7 +135,6 @@ async function getLog() {
         store.commit('setLog', record.data)
         const i = getDaysSinceLast(record)
         if (i >= 2) {
-          console.log('oi', i)
           for (let f = 1; f < i; f++) {
             const hours = (i - f) * 24
             const timer = (i - f) * 50
@@ -137,7 +148,6 @@ async function getLog() {
             }, timer)
           }
         }
-        console.log('oi1', i)
         setTimeout(() => {
           store.dispatch('getData', {
             mode: 3,
@@ -205,10 +215,22 @@ async function getLog() {
 
 //graph
 const yAxis = computed(() => {
-  const logs = store.getters.getLogs.map((log) => {
+  const logs = store.getters.getLogs
+  let filtered = []
+  if (date.value) {
+    const start = date.value[0]
+    const end = date.value[1]
+    start.setHours(0, 0, 0, 0)
+    end.setHours(23, 59, 59, 999)
+    const logs1 = toRaw(logs)
+    filtered = logs1.filter((log) => log.event_time >= start && log.event_time <= end)
+    return filtered.map((log) => {
+      return { x: log.day, y: log.value }
+    })
+  }
+  return logs.map((log) => {
     return { x: log.day, y: log.value }
   })
-  return logs
 })
 
 //chart
@@ -389,5 +411,16 @@ h2 {
 .button:hover {
   background: linear-gradient(135deg, #094f35, #053926);
   box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.width {
+  width: 30%;
+}
+
+.side {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: start;
 }
 </style>

@@ -42,7 +42,13 @@ const store = createStore({
     setLog(state, log) {
       if (log.length > 1) {
         log.forEach((element) => {
-          state.logs.push(element)
+          const newElement = {
+            day: element.day,
+            event_time: element.event_time,
+            value: element.value,
+            comment: element.comment || '',
+          }
+          state.logs.push(newElement)
         })
       } else {
         state.logs.push(log)
@@ -91,6 +97,7 @@ const store = createStore({
           event_time: event_time,
           day: day,
           value: (totalValue / count).toFixed(1),
+          comment: '',
         }
         return newRecord
       }
@@ -214,6 +221,7 @@ const store = createStore({
                   value: element.value,
                   event_time: element.event_time,
                   day: setData(element.event_time),
+                  comment: element.comment || [],
                 }
                 array.push(newElement)
               })
@@ -258,7 +266,6 @@ const store = createStore({
       state.commit('setLog', sortLogs)
     },
     async createPDF(state) {
-      let month1
       const pdfDoc = await PDFDocument.create()
       // Set metadata for the PDF
       pdfDoc.setTitle('REGISTO LEGIONELLA')
@@ -268,22 +275,10 @@ const store = createStore({
       pdfDoc.setCreationDate(new Date())
 
       let page = pdfDoc.addPage([595, 842])
-      let page1 = null
-
-      if (
-        state.getters.getLogs[0].day.split('/')[1] !=
-        (new Date().getMonth() + 1).toString().padStart(2, '0')
-      ) {
-        page1 = pdfDoc.addPage([595, 842])
-        month1 = (new Date().getMonth() + 1).toString().padStart(2, '0')
-      }
 
       // Obter data atual
       const currentDate = new Date()
-      const month =
-        page1 != null
-          ? currentDate.getMonth().toString().padStart(2, '0')
-          : (currentDate.getMonth() + 1).toString().padStart(2, '0')
+      const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
       const year = currentDate.getFullYear()
       const logs = state.getters.getLogs || null
       const totalPages = pdfDoc.getPageCount()
@@ -394,8 +389,9 @@ const store = createStore({
               month == log.day.split('/')[1],
           )
           const retorno = logForDay ? logForDay.value : ''
+          const comment = logForDay ? logForDay.comment : ''
 
-          const data = [(i + 1).toString().padStart(2, '0'), retorno, '', '']
+          const data = [(i + 1).toString().padStart(2, '0'), retorno, '', comment]
 
           data.forEach((text, columnIndex) => {
             const x = tableXStart + columnWidths.slice(0, columnIndex).reduce((a, b) => a + b, 0)
@@ -414,9 +410,6 @@ const store = createStore({
         }
       }
       draw(page, month)
-      if (page1 != null) {
-        draw(page1, month1)
-      }
 
       await pdfDoc.save().then((result) => {
         const blob = new Blob([result], { type: 'application/pdf' })
