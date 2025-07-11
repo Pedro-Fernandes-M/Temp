@@ -104,7 +104,7 @@ const saida = {
       let url = import.meta.env.VITE_LOGIN_URL2
       const sessionCookies = state.getters.getCookies
 
-      console.log(sessionCookies)
+      console.log('url:', url, sessionCookies)
 
       url = url.replace('{time}', Date.now().toString())
       console.log(`Buscando dados para saída...`)
