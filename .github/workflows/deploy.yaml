@@ -31,6 +31,11 @@ jobs:
           VITE_SECRET: ${{ secrets.VITE_SECRET }}
           VITE_API_HOST: ${{ secrets.VITE_API_HOST }}
           VITE_DEVICE_ID: ${{ secrets.VITE_DEVICE_ID }}
+          VITE_LOGIN_URL: ${{ secrets.VITE_LOGIN_URL }}
+          VITE_LOGIN1: ${{ secrets.VITE_LOGIN1 }}
+          VITE_LOGIN2: ${{ secrets.VITE_LOGIN2}}
+          VITE_COOKIES: ${{ secrets.VITE_COOKIES }}
+          VITE_LOGIN_URL2: ${{ secrets.VITE_LOGIN_URL2 }}
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
