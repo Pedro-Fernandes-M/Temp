@@ -13,4 +13,14 @@ export default defineConfig({
     },
   },
   base: '/Temp/',
+  server: {
+    proxy: {
+      '/tuya': {
+        target: 'https://openapi.tuyaeu.com',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/tuya/, ''),
+      },
+    },
+  },
 })

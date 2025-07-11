@@ -1,32 +1,28 @@
 <template>
   <div class="justify">
-    <h2>Temp. Retorno</h2>
-    <div id="chart">
-      <apexchart type="line" height="130%" :options="options" :series="series"></apexchart>
-      <div class="margin">
-        <div class="side">
-          <VueDatePicker v-model="date" range class="width" format="d/M/yyyy" />
-        </div>
-        <div class="border">
-          <span>Legenda</span>
-          <div class="flex">
-            <div class="line"></div>
-            <span>50°C</span>
-          </div>
-        </div>
-      </div>
+    <div class="div">
+      <h3>Gráfico</h3>
+      <select name="" id="" v-model="type">
+        <option value="retorno">Temp. Retorno</option>
+        <option value="saida">Temp. Saida</option>
+      </select>
     </div>
+    <ChartTemp :date="date">
+      <div class="side">
+        <VueDatePicker v-model="date" range class="width" format="d/M/yyyy" id="excludeMe" />
+      </div>
+    </ChartTemp>
     <div class="center">
       <button class="button" @click="getLog()">Obter Dados</button>
     </div>
     <br />
     <Transition>
       <div class="container" v-if="store.getters.getLogs.length > 0">
-        <button class="button" @click="getfile()">
+        <button class="button" @click="setComments()">
           Exportar Relatório
           <IconPDF></IconPDF>
         </button>
-        <button class="button" @click="store.commit('setPopup', true)">
+        <button class="button" @click="dateGraph">
           Exportar Gráfico
           <IconPDF></IconPDF>
         </button>
@@ -35,27 +31,39 @@
     <Transition>
       <InputPop
         v-if="popup"
-        title="Data gráfico"
+        title="Registar Comentários"
         function="1"
-        message="Exemplo: diaInício/mês-diaFim/mês"
+        message="Escreva motivo de registo anormal de temperatura."
       ></InputPop>
+    </Transition>
+    <Transition>
+      <InputPop v-if="popup1" title="Tipo de Relatório" function="2" message=""></InputPop>
     </Transition>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import { toRaw } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 
 import IconPDF from '@/components/icons/IconPDF.vue'
 import InputPop from '@/components/InputPop.vue'
+import ChartTemp from '@/components/ChartTemp.vue'
 
 const store = useStore()
 const popup = computed(() => {
   return store.getters.getPopup
 })
+const popup1 = computed(() => {
+  return store.getters.getPopup1
+})
 const deviceId = import.meta.env.VITE_DEVICE_ID
+
+const type = ref('retorno')
+
+watch(type, (novo) => {
+  store.commit('setType', novo)
+})
 
 if (store.getters.getAccessToken === null) {
   store.dispatch('getData', { mode: 1 })
@@ -70,6 +78,27 @@ startDate.setDate(endDate.getDate() - 7)
 const date = ref()
 date.value = [startDate, endDate]
 
+function dateGraph() {
+  let date2
+  if (date.value) {
+    date2 = new Date(date.value[0])
+  } else {
+    date2 = new Date(store.getters.getLogs[0].event_time)
+  }
+  const day = date2.getDate()
+  const month = date2.getMonth() + 1
+  let date1
+  if (date.value) {
+    date1 = new Date(date.value[0])
+  } else {
+    date1 = new Date(store.getters.getLogs[store.getters.getLogs.length - 1].event_time)
+  }
+  const day1 = date1.getDate()
+  const month1 = date1.getMonth() + 1
+
+  store.commit('setDateGraph', `${day}/${month}-${day1}/${month1}`)
+  store.dispatch('generateGraph')
+}
 //fetch
 function getNoonTime() {
   const now = new Date()
@@ -104,16 +133,16 @@ function getDaysSinceLast(record) {
 }
 
 async function getLog() {
-  let records = localStorage.getItem('records')
+  let records = JSON.parse(localStorage.getItem('records'))
   if (store.getters.getAccessToken === null) {
     store.dispatch('getData', { mode: 1 })
     alert('Access token not available')
     return
   }
   if (records) {
-    records = JSON.parse(records)
     const day = new Date().getDate()
     const month = new Date().getMonth() + 1
+    const year = new Date().getFullYear().toString().slice(-2)
 
     if (isMoreThan7Days(records[0].lastDay) == true) {
       alert('Já passaram mais de 7 dias desde ultimo registo  (' + records[0].lastDay + ') !')
@@ -123,7 +152,11 @@ async function getLog() {
     records.forEach((record) => {
       if (
         record.lastDay ==
-        day.toString().padStart(2, '0') + '/' + month.toString().padStart(2, '0')
+        day.toString().padStart(2, '0') +
+          '/' +
+          month.toString().padStart(2, '0') +
+          '/' +
+          year.toString()
       ) {
         store.commit('clearLog')
         store.commit('setLink', null)
@@ -211,96 +244,36 @@ async function getLog() {
       }, timer)
     }
   }
+  //falta logica de cookies ver validade para n fazer sempre login
+  await store.dispatch('saida/login')
+  await store.dispatch('saida/fetchAndUpdate')
 }
 
-//graph
-const yAxis = computed(() => {
-  const logs = store.getters.getLogs
-  let filtered = []
-  if (date.value) {
-    const start = date.value[0]
-    const end = date.value[1]
-    start.setHours(0, 0, 0, 0)
-    end.setHours(23, 59, 59, 999)
-    const logs1 = toRaw(logs)
-    filtered = logs1.filter((log) => log.event_time >= start && log.event_time <= end)
-    return filtered.map((log) => {
-      return { x: log.day, y: log.value }
-    })
+async function setComments() {
+  await store.dispatch('readComments')
+  if (store.getters.getComments.length > 0) {
+    store.commit('setPopUp', true)
+  } else {
+    store.commit('setPopUp1', true)
   }
-  return logs.map((log) => {
-    return { x: log.day, y: log.value }
-  })
+}
+
+const pdf = computed(() => {
+  return store.getters.getPdf
+})
+watch(pdf, (novo) => {
+  if (novo) {
+    getFile()
+  }
 })
 
-//chart
-const options = ref({
-  chart: {
-    toolbar: {
-      show: false,
-    },
-    animations: {
-      enabled: true,
-      speed: 20,
-      animateGradually: {
-        enabled: true,
-        delay: 2000,
-      },
-      dynamicAnimation: {
-        enabled: true,
-        speed: 100,
-      },
-    },
-  },
-  dataLabels: {
-    enabled: true,
-  },
-  stroke: {
-    curve: 'smooth',
-    width: 2.5,
-  },
-  colors: ['#000000'],
-  xaxis: {
-    labels: {
-      style: {
-        colors: '#000000', // Specify colors for each label
-      },
-    },
-  },
-  yaxis: {
-    max: 54,
-
-    labels: {
-      style: {
-        colors: '#000000',
-      },
-    },
-  },
-  annotations: {
-    yaxis: [
-      {
-        y: 50, // The y-axis value you want to highlight
-        borderColor: '#FF0000', // Line color
-        borderWidth: 2, // Line thickness (optional)
-        opacity: 0.8, // Optional opacity for the line
-      },
-    ],
-  },
-})
-
-const series = ref([
-  {
-    name: 'Temp(°C)',
-    data: yAxis,
-  },
-])
-
-async function getfile() {
-  await store.dispatch('createPDF')
+async function getFile() {
+  await store.dispatch('createPDF', store.getters.getMes)
   const url = store.getters.getLink
   const dataAtual = new Date()
-  const mes = String(dataAtual.getMonth() + 1).padStart(2, '0')
+  const mes = store.getters.getMes
   const ano = dataAtual.getFullYear()
+  const records = JSON.parse(localStorage.getItem('records'))
 
   try {
     const response = await fetch(url)
@@ -312,7 +285,10 @@ async function getfile() {
     // Trigger the download
     const link = document.createElement('a')
     link.href = downloadUrl
-    link.download = `Registo_Legionella_${mes}/${ano}.pdf` // Name of the file to save
+    link.download =
+      mes == 0
+        ? `Registo_Legionella_${records[0].firstDay}-${records[0].lastDay}.pdf`
+        : `Registo_Legionella_${mes}/${ano}.pdf` // Name of the file to save
     link.click()
 
     // Clean up the temporary object URL
@@ -320,6 +296,7 @@ async function getfile() {
   } catch (error) {
     console.error('Error fetching the PDF:', error)
   }
+  store.commit('setPdf', false)
 }
 </script>
 
@@ -339,6 +316,7 @@ async function getfile() {
   display: grid;
   align-items: center;
   width: 100%;
+  height: 100vh;
 }
 
 .line {
@@ -370,21 +348,16 @@ async function getfile() {
   align-items: center;
   width: 100%;
   gap: 0.5rem;
-}
-
-h2 {
-  text-align: center;
-  margin-bottom: 2rem;
+  margin-top: -2.5rem;
 }
 
 .center {
   display: flex;
   flex-direction: column;
   text-align: center;
-
   justify-content: center;
   align-items: center;
-  margin-top: 1.05rem;
+  margin-top: 1rem;
 }
 .text {
   color: white;
@@ -401,7 +374,7 @@ h2 {
   cursor: pointer;
   transition: all 0.3s ease-in-out;
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -414,7 +387,8 @@ h2 {
 }
 
 .width {
-  width: 30%;
+  margin-left: 1rem;
+  width: clamp(220px, 12vw, 300px);
 }
 
 .side {
@@ -422,5 +396,33 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: start;
+}
+
+select {
+  padding: 8px;
+  font-size: 0.9rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  color: #333;
+  outline: none;
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 0.65rem auto;
+  transition: border 0.3s ease;
+}
+
+select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+}
+.div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+h3 {
+  padding: 0.3rem;
+  margin: 0;
 }
 </style>

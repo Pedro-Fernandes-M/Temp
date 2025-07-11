@@ -1,63 +1,107 @@
 <template>
-  <div class="bg" @click="store.commit('setPopup', false)">
+  <div class="bg" @click="store.commit(`${type}`, false)">
     <div class="format" @click.stop>
       <h3>{{ props.title }}</h3>
-      <p>{{ props.message }}</p>
-      <input type="text" v-model="input" id="input" :placeholder="placeholder" />
-      <button @click="choose(props.function)">Register</button>
+      <p v-if="props.message">{{ props.message }}</p>
+      <div class="height" v-if="props.function == '1'">
+        <div v-for="(id, index) in array" :key="index">
+          <span class="span">Dia:{{ logs[id].day }}</span>
+          <span>Temp:{{ logs[id].value }}</span>
+          <br />
+          <input
+            class="span1"
+            type="text"
+            v-model="comments[index]"
+            id="input"
+            :placeholder="placeholder"
+          />
+        </div>
+      </div>
+      <div class="flex" v-if="props.function == '2'">
+        <select v-model="option">
+          <option value="1">Mês atual</option>
+          <option value="2">Escolher mês</option>
+          <option value="3">Todos meses</option>
+        </select>
+        <input type="number" placeholder="1-10" v-model="input" v-if="option == 2" />
+      </div>
+      <button @click="choose(props.function)">
+        {{ props.function == '1' ? 'Register' : 'Selecionar' }}
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { defineProps, watch } from 'vue'
+import { defineProps } from 'vue'
 import { ref } from 'vue'
 import { useStore } from 'vuex'
 
 const props = defineProps(['title', 'message', 'function'])
-const input = ref(null)
 const placeholder = ref()
 const store = useStore()
+const comments = ref([])
+const array = store.getters.getComments
+let logs = store.getters.getLogs
+const type = ref(props.function == 1 ? 'setPopUp' : 'setPopUp1')
+const option = ref('1')
+const input = ref()
 
 function choose(choice) {
   if (choice === '1') {
-    dateGraph()
+    registerComments()
+  } else {
+    chooseType(option.value)
   }
 }
 
-function dateGraph() {
-  if (validateInput(input.value)) {
-    store.commit('setDateGraph', input.value)
-    store.commit('setPopup', false)
-    if (store.getters.getDateGraph != null) {
-      store.dispatch('generateGraph')
-    }
-  }
-}
-
-watch(
-  () => input.value,
-  (newValue) => {
-    if (!validateInput(newValue)) {
-      placeholder.value = 'Invalid look at example'
-      document.getElementById('input').classList.add('border-red')
+function registerComments() {
+  store.commit('clearLog')
+  if (Object.keys(comments.value).length != Object.keys(array).length) {
+    if (array.length > 1) {
+      array.forEach((comment, index) => {
+        logs[array[array.indexOf(comment)]].comment = comments.value[index] || 'false'
+      })
     } else {
-      if (document.getElementById('input').classList.contains('border-red')) {
-        document.getElementById('input').classList.remove('border-red')
-      }
+      logs[array[0]].comment = 'false'
     }
-  },
-)
-
-function validateInput(value) {
-  // Verificar se o valor é nulo ou indefinido
-  if (value === null || value === undefined) {
-    return false
+  } else {
+    comments.value.forEach((comment, index) => {
+      logs[array[index]].comment = comment
+    })
   }
+  store.commit('setLog', logs)
+  localStorage.setItem(
+    'records',
+    JSON.stringify([
+      {
+        firstDay: logs[0].day + '/' + (new Date().getFullYear() % 100),
+        lastDay: logs[logs.length - 1].day + '/' + (new Date().getFullYear() % 100),
+        data: logs,
+      },
+    ]),
+  )
 
-  // Regex para validar o formato dd/mm-dd/mm
-  const regex = /^([0-2][0-9]|3[0-1])\/(0[1-9]|1[0-2])-([0-2][0-9]|3[0-1])\/(0[1-9]|1[0-2])$/
-  return regex.test(value) // Retorna true se o formato for válido
+  store.commit('clearComments')
+  store.commit('setPopUp', false)
+  store.commit('setPopUp1', true)
+}
+
+function chooseType(option) {
+  if (option == 1) {
+    const mes = new Date().getMonth() + 1
+    store.commit('setMes', mes)
+    store.commit('setPopUp1', false)
+    store.commit('setPdf', true)
+  } else if (option == 2) {
+    store.commit('setMes', input)
+    store.commit('setPopUp1', false)
+    store.commit('setPdf', true)
+  } else {
+    store.commit('setMes', 0)
+    store.commit('setPopUp1', false)
+    store.commit('setPdf', true)
+  }
 }
 </script>
 
@@ -108,7 +152,7 @@ function validateInput(value) {
 }
 
 /* Modern button styling */
-.format button {
+button {
   padding: 10px 20px;
   font-size: 16px;
   font-weight: bold;
@@ -130,5 +174,56 @@ function validateInput(value) {
 .format button:active {
   background-color: #004494; /* Even darker blue on click */
   transform: scale(1); /* Reset zoom on click */
+}
+
+.height {
+  max-height: 55dvh;
+  overflow-y: scroll;
+}
+.span {
+  margin-right: 1rem;
+}
+.span1 {
+  margin-top: 0.2rem;
+}
+.flex {
+  display: grid;
+  justify-content: center;
+  align-items: center;
+}
+select {
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  color: #333;
+  outline: none;
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 0.65rem auto;
+  transition: border 0.3s ease;
+}
+
+select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+}
+
+input {
+  margin-top: 0.5rem;
+  padding: 10px 14px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #fdfdfd;
+  color: #333;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
 }
 </style>

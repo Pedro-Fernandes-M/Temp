@@ -1,17 +1,21 @@
 <template>
-  <router-view v-slot="{ Component }">
+  <RouterView v-slot="{ Component }">
     <transition>
       <component :is="Component" />
     </transition>
-  </router-view>
+  </RouterView>
 </template>
 
 <script setup>
+import { onBeforeUnmount } from 'vue'
 import { RouterView } from 'vue-router'
+import { useStore } from 'vuex'
+
+const store = useStore()
 
 document.addEventListener('contextmenu', (event) => event.preventDefault())
 
-// Disable F12, Ctrl+Shift+I
+/* // Disable F12, Ctrl+Shift+I
 document.addEventListener('keydown', (event) => {
   if (
     event.key === 'F12' ||
@@ -51,13 +55,15 @@ function detectDevTools() {
 
 // Function to stop the app
 function stopApp() {
+  localStorage.removeItem('sessionCookies')
   const displayHeight = window.innerHeight - 100
   document.body.innerHTML = `<h1 class="color" style="height:${displayHeight}px">Unauthorized Access</h1>`
   throw new Error('DevTools detected! App execution stopped.')
 }
 
 // Call the detection function
-detectDevTools()
+detectDevTools() */
+onBeforeUnmount(localStorage.removeItem('sessionCookies'))
 </script>
 
 <style>

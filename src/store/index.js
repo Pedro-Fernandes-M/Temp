@@ -1,7 +1,8 @@
 import { createStore } from 'vuex'
 import CryptoJS from 'crypto-js'
-import { PDFDocument, rgb } from 'pdf-lib'
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import html2canvas from 'html2canvas'
+import saida from './saida'
 
 const store = createStore({
   state: {
@@ -11,6 +12,11 @@ const store = createStore({
     link: null,
     date_graph: null,
     popup: false,
+    popup1: false,
+    comments: [],
+    pdf: false,
+    mesEsc: null,
+    type: 'retorno',
   },
   getters: {
     getAccessToken(state) {
@@ -30,6 +36,21 @@ const store = createStore({
     },
     getPopup(state) {
       return state.popup
+    },
+    getPopup1(state) {
+      return state.popup1
+    },
+    getComments(state) {
+      return state.comments
+    },
+    getPdf(state) {
+      return state.pdf
+    },
+    getMes(state) {
+      return state.mesEsc
+    },
+    getType(state) {
+      return state.type
     },
   },
   mutations: {
@@ -63,8 +84,26 @@ const store = createStore({
     setDateGraph(state, payload) {
       state.date_graph = payload
     },
-    setPopup(state, payload) {
+    setPopUp(state, payload) {
       state.popup = payload
+    },
+    setPopUp1(state, payload) {
+      state.popup1 = payload
+    },
+    setComments(state, payload) {
+      state.comments = payload
+    },
+    clearComments(state) {
+      state.comments = []
+    },
+    setPdf(state, payload) {
+      state.pdf = payload
+    },
+    setMes(state, payload) {
+      state.mesEsc = payload
+    },
+    setType(state, payload) {
+      state.type = payload
     },
   },
 
@@ -267,6 +306,8 @@ const store = createStore({
     },
     async createPDF(state) {
       const pdfDoc = await PDFDocument.create()
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+
       // Set metadata for the PDF
       pdfDoc.setTitle('REGISTO LEGIONELLA')
       pdfDoc.setAuthor('Filipe Alves Fernandes')
@@ -274,23 +315,50 @@ const store = createStore({
       pdfDoc.setCreator('Adobe Acrobat Pro DC')
       pdfDoc.setCreationDate(new Date())
 
-      let page = pdfDoc.addPage([595, 842])
-
-      // Obter data atual
       const currentDate = new Date()
-      const month = (currentDate.getMonth() + 1).toString().padStart(2, '0')
+      const month =
+        state.getters.getMes == null
+          ? (currentDate.getMonth() + 1).toString().padStart(2, '0')
+          : state.getters.getMes
       const year = currentDate.getFullYear()
       const logs = state.getters.getLogs || null
+      const saida = state.getters['saida/getSaida'] || null
+
+      let page = null
+      let mesIni = null
+      if (state.getters.getMes != 0) {
+        page = pdfDoc.addPage([595, 842])
+      } else {
+        const date1 = new Date(logs[0].event_time)
+        const date2 = new Date(logs[logs.length - 1].event_time)
+
+        const m1 = date1.getMonth() + 1 // Janeiro é 0
+        const y1 = date1.getFullYear()
+        const m2 = date2.getMonth() + 1
+        const y2 = date2.getFullYear()
+
+        mesIni = m1
+
+        const meses = (y2 - y1) * 12 + (m2 - m1)
+        if (meses == 0) {
+          page = pdfDoc.addPage([595, 842])
+        } else {
+          page = []
+          for (let i = 0; i <= meses; i++) {
+            page.push(pdfDoc.addPage([595, 842]))
+          }
+        }
+      }
       const totalPages = pdfDoc.getPageCount()
       pdfDoc.setSubject(`This document contains ${totalPages} pages.`)
 
       const fontSize = 7.7
       const margin = 50
-      const textYStart = 800
+      const textYStart = 842 - margin // Margem superior igual à esquerda e direita
       const tableXStart = margin
       const tableYStart = textYStart - 100
       const rowHeight = 20
-      const columnWidths = [50, 120, 120, 150]
+      const columnWidths = [50, 120, 120, 205]
       const tableWidth = columnWidths.reduce((a, b) => a + b, 0)
       const headerHeight = rowHeight
 
@@ -300,26 +368,31 @@ const store = createStore({
           y: textYStart,
           size: fontSize + 4,
           color: rgb(0, 0, 0),
+          font: font,
         })
 
-        page.drawText('INNSIDE by Meliã Braga Centro', {
+        page.drawText('INNSIDE by Meliã, Braga - Centro', {
           x: margin,
           y: textYStart - 20,
           size: fontSize + 2,
+          font: font,
         })
 
         page.drawText(`MÊS/ANO: ${month}/${year}`, {
           x: margin,
           y: textYStart - 40,
           size: fontSize + 2,
+          font: font,
         })
 
         page.drawText('DEPÓSITO Nº 1-5', {
           x: margin,
           y: textYStart - 60,
           size: fontSize + 2,
+          font: font,
         })
 
+        // Tabela
         page.drawRectangle({
           x: tableXStart,
           y: tableYStart - (headerHeight + rowHeight * 31),
@@ -361,84 +434,103 @@ const store = createStore({
         headers.forEach((header, columnIndex) => {
           let columnStartX =
             tableXStart + columnWidths.slice(0, columnIndex).reduce((a, b) => a + b, 0)
-          if (columnIndex >= 1 && columnIndex != 2) columnStartX -= 10
-          if (columnIndex === 2) columnStartX -= 5
           const columnWidth = columnWidths[columnIndex]
-
           const cellCenterX = columnStartX + columnWidth / 2
-
           const cellCenterY = tableYStart - headerHeight / 2
-
-          const textWidth = header.length * (fontSize / 2)
+          const textWidth = font.widthOfTextAtSize(header, fontSize)
           const textStartX = cellCenterX - textWidth / 2
-
           const textStartY = cellCenterY - fontSize / 4
 
           page.drawText(header, {
             x: textStartX,
             y: textStartY,
             size: fontSize,
+            font: font,
           })
         })
-
         for (let i = 0; i < 31; i++) {
           const y = tableYStart - headerHeight - (i + 1) * rowHeight
-          const logForDay = logs.find(
-            (log) =>
-              log.day.split('/')[0] == (i + 1).toString().padStart(2, '0') &&
-              month == log.day.split('/')[1],
-          )
-          const retorno = logForDay ? logForDay.value : ''
-          const comment = logForDay ? logForDay.comment : ''
+          const currentYear = new Date().getFullYear()
 
-          const data = [(i + 1).toString().padStart(2, '0'), retorno, '', comment]
+          const logForDay = logs.find((log) => {
+            const logDate = new Date(log.event_time)
+            return (
+              logDate.getDate() === i + 1 &&
+              logDate.getMonth() + 1 == month &&
+              logDate.getFullYear() === currentYear
+            )
+          })
+          const retorno = logForDay ? logForDay.value : ''
+          console.log(saida)
+          const logForSaida = saida.find((log) => {
+            const logDate = new Date(log.event_time)
+            return (
+              logDate.getDate() === i + 1 &&
+              logDate.getMonth() + 1 == month &&
+              logDate.getFullYear() === currentYear
+            )
+          })
+          const logssaida = logForSaida ? logForSaida.value : ''
+
+          const comment = logForDay ? (logForDay.comment == 'false' ? '' : logForDay.comment) : ''
+          const data = [(i + 1).toString().padStart(2, '0'), retorno, logssaida, comment]
 
           data.forEach((text, columnIndex) => {
             const x = tableXStart + columnWidths.slice(0, columnIndex).reduce((a, b) => a + b, 0)
             const width = columnWidths[columnIndex]
             const height = rowHeight
-            const textWidth = fontSize
-            const centerX = x + (width - textWidth) / 2
             const centerY = y + (height - fontSize) / 2
 
-            page.drawText(text, {
+            const textWidth = font.widthOfTextAtSize(text.toString(), fontSize)
+            const centerX = x + (width - textWidth) / 2
+
+            page.drawText(text.toString(), {
               x: centerX,
               y: centerY,
               size: fontSize,
+              font: font,
             })
           })
         }
       }
-      draw(page, month)
+      if (state.getters.getMes == 0 && page.length == undefined) {
+        draw(page, new Date().getMonth() + 1)
+      } else if (state.getters.getMes != 0) {
+        draw(page, month)
+      } else {
+        for (let i = 0; i < page.length; i++) {
+          draw(page[i], mesIni + i)
+        }
+      }
 
-      await pdfDoc.save().then((result) => {
-        const blob = new Blob([result], { type: 'application/pdf' })
-        const url = URL.createObjectURL(blob)
+      const pdfBytes = await pdfDoc.save()
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
 
-        state.commit('setLink', url)
-      })
+      state.commit('setLink', url)
       state.dispatch('saveData')
     },
     saveData() {
-      let records = localStorage.getItem('records')
+      let records = JSON.parse(localStorage.getItem('records'))
 
       const [firstDay, lastDay] = [
         store.getters.getLogs[0].day,
         store.getters.getLogs[store.getters.getLogs.length - 1].day,
       ]
       if (records) {
-        records = JSON.parse(records)
-
         records.forEach((record) => {
-          if (record.firstDay === firstDay && record.lastDay === lastDay) {
+          if (
+            record.firstDay.split('/').slice(0, 2).join('/') === firstDay &&
+            record.lastDay.split('/').slice(0, 2).join('/') === lastDay
+          ) {
             return
           } else {
             const save = store.getters.getLogs
 
             const newRecords = [
               {
-                firstDay: save[0].day,
-                lastDay: save[save.length - 1].day,
+                firstDay: save[0].day + '/' + (new Date().getFullYear() % 100),
+                lastDay: save[save.length - 1].day + '/' + (new Date().getFullYear() % 100),
                 data: save,
               },
             ]
@@ -451,8 +543,8 @@ const store = createStore({
           'records',
           JSON.stringify([
             {
-              firstDay: firstDay,
-              lastDay: lastDay,
+              firstDay: firstDay + '/' + (new Date().getFullYear() % 100),
+              lastDay: lastDay + '/' + (new Date().getFullYear() % 100),
               data: store.getters.getLogs,
             },
           ]),
@@ -461,7 +553,9 @@ const store = createStore({
     },
     async generateGraph(state) {
       // Capturando o gráfico como imagem usando html2canvas
-      const canvas = await html2canvas(document.querySelector('#chart'))
+      const canvas = await html2canvas(document.querySelector('#chart'), {
+        ignoreElements: (element) => element.id === 'excludeMe',
+      })
       const imgData = canvas.toDataURL('image/png') // Obtendo a imagem como PNG
 
       // Criando o PDF com pdf-lib
@@ -522,7 +616,7 @@ const store = createStore({
 
       // Calculando as dimensões finais da imagem ajustada
       const imgWidth = width * scale
-      const imgHeight = height * scale * 1.1
+      const imgHeight = height * scale * 1.2
 
       // Posicionando o gráfico no centro da página horizontalmente e verticalmente
       const imgX = (842 - imgWidth) / 2 // Centralizado horizontalmente
@@ -540,7 +634,11 @@ const store = createStore({
       const pdfBytes = await pdfDoc.save()
 
       // Criando o nome do arquivo com a data
-      const filename = `grafico_legionella_${dateText.replace(/ /g, '_').replace(/\//g, '-')}.pdf`
+      const pad = (n) => n.toString().padStart(2, '0')
+      const [s, e] = store.getters.getDateGraph.split('-')
+      const [sd, sm] = s.split('/').map(pad)
+      const [ed, em] = e.split('/').map(pad)
+      const filename = `grafico_legionella_${sd}-${sm}_ate_${ed}-${em}.pdf`
 
       // Criando um link para download do PDF
       const blob = new Blob([pdfBytes], { type: 'application/pdf' })
@@ -551,7 +649,18 @@ const store = createStore({
 
       state.dispatch('saveData')
     },
+    readComments(state) {
+      const logs = state.getters.getLogs || null
+      const array = []
+      logs.forEach((log) => {
+        if (log.comment === '' && log.value <= 49.5) {
+          array.push(logs.indexOf(log))
+        }
+      })
+      store.commit('setComments', array)
+    },
   },
+  modules: { saida },
 })
 
 export default store
