@@ -11,7 +11,7 @@ import { onBeforeUnmount } from 'vue'
 import { RouterView } from 'vue-router'
 import { useStore } from 'vuex'
 
-const store = useStore()
+const store = useStore() //
 
 document.addEventListener('contextmenu', (event) => event.preventDefault())
 
