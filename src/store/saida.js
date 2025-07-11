@@ -51,7 +51,6 @@ const saida = {
       }
       const COOKIE_PREFIX = import.meta.env.VITE_COOKIES
 
-      console.log(COOKIE_PREFIX, LOGIN_PAYLOAD, LOGIN_URL)
       console.log('Realizando login...')
 
       try {
@@ -104,7 +103,7 @@ const saida = {
       let url = import.meta.env.VITE_LOGIN_URL2
       const sessionCookies = state.getters.getCookies
 
-      console.log('url:', url, sessionCookies)
+      console.log('session:', sessionCookies)
 
       url = url.replace('{time}', Date.now().toString())
       console.log(`Buscando dados para saída...`)
