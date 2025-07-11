@@ -245,7 +245,9 @@ async function getLog() {
     }
   }
   //falta logica de cookies ver validade para n fazer sempre login
+  console.log('login')
   await store.dispatch('saida/login')
+  console.log('fetch')
   await store.dispatch('saida/fetchAndUpdate')
 }
 
