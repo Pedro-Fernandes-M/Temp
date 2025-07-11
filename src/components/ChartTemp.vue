@@ -33,8 +33,6 @@ const type = computed(() => {
 const yAxis = computed(() => {
   const logs = type.value == 'retorno' ? store.getters.getLogs : store.getters['saida/getSaida']
   let filtered = []
-  console.log(logs)
-  console.log(props.date)
   if (props.date) {
     const start = props.date[0]
     const end = props.date[1]

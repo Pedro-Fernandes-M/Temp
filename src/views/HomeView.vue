@@ -13,7 +13,15 @@
       </div>
     </ChartTemp>
     <div class="center">
-      <button class="button" @click="getLog()">Obter Dados</button>
+      <input
+        type="file"
+        id="hiddenFileInput"
+        accept=".json"
+        style="display: none"
+        @change="handleFileChange"
+      />
+      <button class="button" v-if="type == 'saida'" @click="upload">Upload File</button>
+      <button class="button" v-else @click="getLog()">Obter Dados</button>
     </div>
     <br />
     <Transition>
@@ -245,10 +253,10 @@ async function getLog() {
     }
   }
   //falta logica de cookies ver validade para n fazer sempre login
-  console.log('login')
+  /*   console.log('login')
   await store.dispatch('saida/login')
   console.log('fetch')
-  await store.dispatch('saida/fetchAndUpdate')
+  await store.dispatch('saida/fetchAndUpdate') */
 }
 
 async function setComments() {
@@ -299,6 +307,29 @@ async function getFile() {
     console.error('Error fetching the PDF:', error)
   }
   store.commit('setPdf', false)
+}
+
+function upload() {
+  const hiddenInput = document.getElementById('hiddenFileInput')
+
+  hiddenInput.click()
+}
+
+async function handleFileChange(event) {
+  let json = null
+  const file = event.target.files[0]
+  if (file && file.name.endsWith('.json')) {
+    try {
+      const text = await file.text() // Read content
+      json = JSON.parse(text) // Parse and store JSON
+    } catch (error) {
+      alert('Failed to read or parse JSON file')
+      console.error(error)
+    }
+    store.commit('saida/setSaida', json)
+  } else {
+    alert('Please select a valid .js file')
+  }
 }
 </script>
 
