@@ -1,4 +1,7 @@
- async login({ commit }) {
+fakeSaida({ commit }) {
+      commit('setSaida', JSON.parse(localStorage.getItem('saida')))
+    },
+    async login({ commit }) {
       const LOGIN_URL = import.meta.env.VITE_LOGIN_URL
       const LOGIN_PAYLOAD = {
         username: import.meta.env.VITE_LOGIN1,
@@ -43,7 +46,6 @@
         return null
       }
     },
-
     async fetchAndUpdate(state) {
       const local = state.getters.getSaida || null
       console.log(local)

@@ -7,11 +7,11 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount } from 'vue'
+//import { onBeforeUnmount } from 'vue'
 import { RouterView } from 'vue-router'
-import { useStore } from 'vuex'
+//import { useStore } from 'vuex'
 
-const store = useStore()
+//const store = useStore()
 
 document.addEventListener('contextmenu', (event) => event.preventDefault())
 
@@ -63,7 +63,8 @@ function stopApp() {
 
 // Call the detection function
 detectDevTools()
-onBeforeUnmount(localStorage.removeItem('sessionCookies'))
+
+//onBeforeUnmount(localStorage.removeItem('sessionCookies'))
 </script>
 
 <style>

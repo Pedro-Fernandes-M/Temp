@@ -14,6 +14,7 @@ const store = createStore({
     popup: false,
     popup1: false,
     comments: [],
+    commentS: [],
     pdf: false,
     mesEsc: null,
     type: 'retorno',
@@ -42,6 +43,9 @@ const store = createStore({
     },
     getComments(state) {
       return state.comments
+    },
+    getCommentS(state) {
+      return state.commentS
     },
     getPdf(state) {
       return state.pdf
@@ -92,6 +96,9 @@ const store = createStore({
     },
     setComments(state, payload) {
       state.comments = payload
+    },
+    setCommentS(state, payload) {
+      state.commentS = payload
     },
     clearComments(state) {
       state.comments = []
@@ -371,7 +378,7 @@ const store = createStore({
           font: font,
         })
 
-        page.drawText('INNSIDE by Meliã, Braga - Centro', {
+        page.drawText(import.meta.env.VITE_NAME, {
           x: margin,
           y: textYStart - 20,
           size: fontSize + 2,
@@ -448,6 +455,7 @@ const store = createStore({
             font: font,
           })
         })
+        const saidaC = JSON.parse(localStorage.getItem('saidaC'))
         for (let i = 0; i < 31; i++) {
           const y = tableYStart - headerHeight - (i + 1) * rowHeight
           const currentYear = new Date().getFullYear()
@@ -461,7 +469,6 @@ const store = createStore({
             )
           })
           const retorno = logForDay ? logForDay.value : ''
-          console.log(saida)
           const logForSaida = saida.find((log) => {
             const logDate = new Date(log.event_time)
             return (
@@ -470,10 +477,24 @@ const store = createStore({
               logDate.getFullYear() === currentYear
             )
           })
-          const logssaida = logForSaida ? logForSaida.value : ''
+          const logsSaida = logForSaida ? logForSaida.value : ''
 
           const comment = logForDay ? (logForDay.comment == 'false' ? '' : logForDay.comment) : ''
-          const data = [(i + 1).toString().padStart(2, '0'), retorno, logssaida, comment]
+
+          const commentS = saidaC.find((log) => {
+            const logDate = new Date(log.event_time)
+            return (
+              logDate.getDate() === i + 1 &&
+              logDate.getMonth() + 1 == month &&
+              logDate.getFullYear() === currentYear
+            )
+          })?.comment
+          const data = [
+            (i + 1).toString().padStart(2, '0'),
+            retorno,
+            logsSaida,
+            comment + (commentS && comment ? ';' + commentS : commentS ? commentS : ''),
+          ]
 
           data.forEach((text, columnIndex) => {
             const x = tableXStart + columnWidths.slice(0, columnIndex).reduce((a, b) => a + b, 0)
@@ -508,7 +529,9 @@ const store = createStore({
       const url = URL.createObjectURL(blob)
 
       state.commit('setLink', url)
-      state.dispatch('saveData')
+      if (store.getters.getLogs.length > 0) {
+        state.dispatch('saveData')
+      }
     },
     saveData() {
       let records = JSON.parse(localStorage.getItem('records'))
@@ -582,7 +605,7 @@ const store = createStore({
         color: rgb(0, 0, 0),
       })
 
-      page.drawText('INNSIDE by Meliã Braga Centro', {
+      page.drawText(import.meta.env.VITE_NAME, {
         x: margin,
         y: textYStart - 20,
         size: fontSize + 2,
@@ -647,17 +670,35 @@ const store = createStore({
       link.download = filename // Usando o nome gerado com a data
       link.click() // Aciona o download automaticamente
 
-      state.dispatch('saveData')
+      if (store.getters.getLogs.length > 0) {
+        state.dispatch('saveData')
+      }
     },
-    readComments(state) {
-      const logs = state.getters.getLogs || null
+    readComments({ commit, getters }) {
+      const logs = getters.getLogs || null
+      const saida = getters['saida/getSaida']
+      const saidaComments = JSON.parse(localStorage.getItem('saidaC')) || []
       const array = []
+      const array1 = []
+
       logs.forEach((log) => {
         if (log.comment === '' && log.value <= 49.5) {
           array.push(logs.indexOf(log))
         }
       })
-      store.commit('setComments', array)
+
+      saida.forEach((log) => {
+        if (
+          log.value <= 53 &&
+          saidaComments.find((comment) => {
+            return comment.event_time == log.event_time
+          }) == undefined
+        ) {
+          array1.push(saida.indexOf(log))
+        }
+      })
+      commit('setComments', array)
+      commit('setCommentS', array1)
     },
   },
   modules: { saida },

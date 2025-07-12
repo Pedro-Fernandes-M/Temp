@@ -36,6 +36,7 @@ jobs:
           VITE_LOGIN2: ${{ secrets.VITE_LOGIN2}}
           VITE_COOKIES: ${{ secrets.VITE_COOKIES }}
           VITE_LOGIN_URL2: ${{ secrets.VITE_LOGIN_URL2 }}
+          VITE_NAME: ${{ secrets.VITE_NAME }}
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

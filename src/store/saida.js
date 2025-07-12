@@ -36,13 +36,12 @@ const saida = {
         })
       }
     },
-  },
-
-  actions: {
-    fakeSaida({ commit }) {
-      commit('setSaida', JSON.parse(localStorage.getItem('saida')))
+    clearSaida(state) {
+      state.saida = []
     },
   },
+
+  actions: {},
 }
 
 export default saida

@@ -25,7 +25,10 @@
     </div>
     <br />
     <Transition>
-      <div class="container" v-if="store.getters.getLogs.length > 0">
+      <div
+        class="container"
+        v-if="store.getters.getLogs.length > 0 || store.getters['saida/getSaida'].length > 0"
+      >
         <button class="button" @click="setComments()">
           Exportar Relatório
           <IconPDF></IconPDF>
@@ -97,7 +100,7 @@ function dateGraph() {
   const month = date2.getMonth() + 1
   let date1
   if (date.value) {
-    date1 = new Date(date.value[0])
+    date1 = new Date(date.value[1])
   } else {
     date1 = new Date(store.getters.getLogs[store.getters.getLogs.length - 1].event_time)
   }
@@ -261,7 +264,7 @@ async function getLog() {
 
 async function setComments() {
   await store.dispatch('readComments')
-  if (store.getters.getComments.length > 0) {
+  if (store.getters.getComments.length > 0 || store.getters.getCommentS.length) {
     store.commit('setPopUp', true)
   } else {
     store.commit('setPopUp1', true)
@@ -326,9 +329,10 @@ async function handleFileChange(event) {
       alert('Failed to read or parse JSON file')
       console.error(error)
     }
+    store.commit('saida/clearSaida')
     store.commit('saida/setSaida', json)
   } else {
-    alert('Please select a valid .js file')
+    alert('Please select a valid .json file')
   }
 }
 </script>
@@ -381,7 +385,8 @@ async function handleFileChange(event) {
   align-items: center;
   width: 100%;
   gap: 0.5rem;
-  margin-top: -2.5rem;
+  margin-top: -3rem;
+  margin-bottom: 1rem;
 }
 
 .center {

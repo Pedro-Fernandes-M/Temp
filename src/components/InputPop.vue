@@ -3,15 +3,29 @@
     <div class="format" @click.stop>
       <h3>{{ props.title }}</h3>
       <p v-if="props.message">{{ props.message }}</p>
-      <div class="height" v-if="props.function == '1'">
+      <div class="height" v-if="props.function == '1' && array.length > 0">
         <div v-for="(id, index) in array" :key="index">
           <span class="span">Dia:{{ logs[id].day }}</span>
-          <span>Temp:{{ logs[id].value }}</span>
+          <span>Temp_Ret.:{{ logs[id].value }}</span>
           <br />
           <input
             class="span1"
             type="text"
             v-model="comments[index]"
+            id="input"
+            :placeholder="placeholder"
+          />
+        </div>
+      </div>
+      <div class="height" v-if="props.function == '1' && array1.length > 0">
+        <div v-for="(id, index) in array1" :key="index">
+          <span class="span">Dia:{{ saidaG[id].day }}</span>
+          <span>Temp_Saída:{{ saidaG[id].value }}</span>
+          <br />
+          <input
+            class="span1"
+            type="text"
+            v-model="commentS[index]"
             id="input"
             :placeholder="placeholder"
           />
@@ -41,8 +55,12 @@ const props = defineProps(['title', 'message', 'function'])
 const placeholder = ref()
 const store = useStore()
 const comments = ref([])
-const array = store.getters.getComments
+const commentS = ref([])
+const array = store.getters.getComments || []
+const array1 = store.getters.getCommentS || []
 let logs = store.getters.getLogs
+let saidaG = store.getters['saida/getSaida']
+let saida = JSON.parse(localStorage.getItem('saidaC')) || []
 const type = ref(props.function == 1 ? 'setPopUp' : 'setPopUp1')
 const option = ref('1')
 const input = ref()
@@ -57,6 +75,7 @@ function choose(choice) {
 
 function registerComments() {
   store.commit('clearLog')
+
   if (Object.keys(comments.value).length != Object.keys(array).length) {
     if (array.length > 1) {
       array.forEach((comment, index) => {
@@ -70,17 +89,36 @@ function registerComments() {
       logs[array[index]].comment = comment
     })
   }
-  store.commit('setLog', logs)
-  localStorage.setItem(
-    'records',
-    JSON.stringify([
-      {
-        firstDay: logs[0].day + '/' + (new Date().getFullYear() % 100),
-        lastDay: logs[logs.length - 1].day + '/' + (new Date().getFullYear() % 100),
-        data: logs,
-      },
-    ]),
-  )
+
+  array1.forEach((comment1, index1) => {
+    console.log({
+      event_time: saidaG[comment1].event_time,
+      value: saidaG[comment1].value,
+      day: saidaG[comment1].day,
+      comment: commentS.value[index1],
+    })
+    saida.push({
+      event_time: saidaG[comment1].event_time,
+      value: saidaG[comment1].value,
+      day: saidaG[comment1].day,
+      comment: commentS.value[index1],
+    })
+  })
+  localStorage.setItem('saidaC', JSON.stringify(saida))
+
+  if (logs.length > 0) {
+    store.commit('setLog', logs)
+    localStorage.setItem(
+      'records',
+      JSON.stringify([
+        {
+          firstDay: logs[0].day + '/' + (new Date().getFullYear() % 100),
+          lastDay: logs[logs.length - 1].day + '/' + (new Date().getFullYear() % 100),
+          data: logs,
+        },
+      ]),
+    )
+  }
 
   store.commit('clearComments')
   store.commit('setPopUp', false)
