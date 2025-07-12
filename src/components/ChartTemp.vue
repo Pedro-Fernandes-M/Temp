@@ -93,7 +93,7 @@ const options = computed(() => ({
   annotations: {
     yaxis: [
       {
-        y: 50,
+        y: type.value == 'retorno' ? 50 : 53,
         borderColor: '#FF0000',
         borderWidth: 2,
         opacity: 0.8,
