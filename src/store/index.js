@@ -197,7 +197,6 @@ const store = createStore({
       function makeApiRequest() {
         const clientId = import.meta.env.VITE_CLIENT_ID
         const secret = import.meta.env.VITE_SECRET
-        const timestamp = getTime()
         const nonce = ''
         let query = 'grant_type=1'
         const method = 'GET'
@@ -213,6 +212,7 @@ const store = createStore({
 
         // Generate the signature
         const { signStr, url } = stringToSign(query, method, secret)
+        const timestamp = getTime()
         const sign =
           payload.mode === 1 || payload.mode === 2
             ? calcSign(clientId, timestamp, nonce, signStr, secret)
