@@ -12,7 +12,7 @@ import { RouterView } from 'vue-router'
 //import { useStore } from 'vuex'
 
 //const store = useStore()
-/* 
+
 document.addEventListener('contextmenu', (event) => event.preventDefault())
 
 document.addEventListener('keydown', (event) => {
@@ -61,7 +61,7 @@ function stopApp() {
 }
 
 // Call the detection function
-detectDevTools() */
+detectDevTools()
 
 //onBeforeUnmount(localStorage.removeItem('sessionCookies'))
 </script>
