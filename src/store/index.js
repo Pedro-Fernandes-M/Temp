@@ -303,7 +303,7 @@ const store = createStore({
     sortLogs(state) {
       const logs = state.getters.getLogs
 
-      const sortLogs = logs.sort((a, b) => {
+      const sortLogs = logs?.sort((a, b) => {
         // Extract day and month from the "day" field (format: DD/MM)
         const [dayA, monthA] = a.day.split('/').map(Number)
         const [dayB, monthB] = b.day.split('/').map(Number)
@@ -467,7 +467,7 @@ const store = createStore({
           const y = tableYStart - headerHeight - (i + 1) * rowHeight
           const currentYear = new Date().getFullYear()
 
-          const logForDay = logs.find((log) => {
+          const logForDay = logs?.find((log) => {
             const logDate = new Date(log.event_time)
             return (
               logDate.getDate() === i + 1 &&
@@ -476,7 +476,7 @@ const store = createStore({
             )
           })
           const retorno = logForDay ? logForDay.value : ''
-          const logForSaida = saida.find((log) => {
+          const logForSaida = saida?.find((log) => {
             const logDate = new Date(log.event_time)
             return (
               logDate.getDate() === i + 1 &&
@@ -488,7 +488,7 @@ const store = createStore({
 
           const comment = logForDay ? (logForDay.comment == 'false' ? '' : logForDay.comment) : ''
 
-          const commentS = saidaC.find((log) => {
+          const commentS = saidaC?.find((log) => {
             const logDate = new Date(log.event_time)
             return (
               logDate.getDate() === i + 1 &&
@@ -697,7 +697,7 @@ const store = createStore({
       saida.forEach((log) => {
         if (
           log.value <= 53 &&
-          saidaComments.find((comment) => {
+          saidaComments?.find((comment) => {
             return comment.event_time == log.event_time
           }) == undefined
         ) {
