@@ -260,7 +260,14 @@ const store = createStore({
                 state.dispatch('getData', { mode: 2 })
               }, data.result.expire_time - 300)
             } else if (payload.mode === 3) {
-              let logs = data.result.logs
+              if (
+                data?.msg ===
+                'No permissions. Your subscription to cloud development plan has expired.'
+              ) {
+                alert('No permissions. Your subscription to cloud development plan has expired.')
+                return
+              }
+              let logs = data?.result?.logs
               const array = []
               logs.forEach((element) => {
                 const newElement = {
