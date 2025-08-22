@@ -27,39 +27,62 @@ document.addEventListener('keydown', (event) => {
 })
 
 function detectDevTools() {
-  const devToolsCheck = new Function('debugger') // Using the `debugger` statement for detection.
+  const devToolsCheck = new Function('debugger')
   let isDevToolsOpen = false
 
-  devToolsCheck() // Initial trigger for the debugger.
-
+  // Debugger timing check
   setInterval(() => {
     const start = performance.now()
     devToolsCheck()
     const end = performance.now()
-
-    // If `debugger` caused a significant delay, it likely indicates DevTools is open.
-    if (end - start > 100) {
+    if (end - start > 50) {
+      // Lowered threshold for sensitivity
       if (!isDevToolsOpen) {
         console.warn('DevTools detected! The app will stop.')
         isDevToolsOpen = true
-
-        // Actions to take when DevTools is detected
         stopApp()
       }
     } else {
       isDevToolsOpen = false
     }
-  }, 500) // Check every 500ms
+  }, 500)
+
+  // Mobile dev tools detection
+  setInterval(() => {
+    const suspiciousGlobals = ['eruda', 'VConsole', 'devtools', '_debug']
+    const suspiciousElements = ['#eruda', '.vconsole', '.debug-panel']
+    if (
+      suspiciousGlobals.some((g) => typeof window[g] !== 'undefined') ||
+      suspiciousElements.some((e) => document.querySelector(e))
+    ) {
+      if (!isDevToolsOpen) {
+        console.warn('Mobile DevTools extension detected! The app will stop.')
+        isDevToolsOpen = true
+        stopApp()
+      }
+    }
+  }, 500)
+
+  // Integrity check for tampering
+  setInterval(() => {
+    if (!detectDevTools.toString().includes('debugger')) {
+      stopApp() // Code was tampered with
+    }
+  }, 1000)
 }
 
-// Function to stop the app
 function stopApp() {
-  localStorage.removeItem('sessionCookies')
-  const displayHeight = window.innerHeight - 100
-  document.body.innerHTML = `<h1 class="color" style="height:${displayHeight}px">Unauthorized Access</h1>`
+  // Disable network requests
+  window.fetch = () => Promise.reject(new Error('Network disabled'))
+  window.XMLHttpRequest = function () {
+    throw new Error('Network disabled')
+  }
+  //const displayHeight = window.innerHeight
+  //const displayWidth = window.innerWidth
+  //document.body.innerHTML = `<div class="color" style="height:${displayHeight}px;width:${displayWidth}px;text-align:center;display:flex;justify-content:center;align-items:center"><h1>Unauthorized Access</h1></div>`
+  window.location.href = 'Piscina/erro'
   throw new Error('DevTools detected! App execution stopped.')
 }
-
 // Call the detection function
 detectDevTools()
 
