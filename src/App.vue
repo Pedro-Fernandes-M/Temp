@@ -80,7 +80,7 @@ function stopApp() {
   //const displayHeight = window.innerHeight
   //const displayWidth = window.innerWidth
   //document.body.innerHTML = `<div class="color" style="height:${displayHeight}px;width:${displayWidth}px;text-align:center;display:flex;justify-content:center;align-items:center"><h1>Unauthorized Access</h1></div>`
-  window.location.href = 'Piscina/erro'
+  window.location.href = 'Temp/erro'
   throw new Error('DevTools detected! App execution stopped.')
 }
 // Call the detection function
