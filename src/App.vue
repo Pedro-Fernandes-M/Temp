@@ -72,7 +72,6 @@ function detectDevTools() {
 }
 
 function stopApp() {
-  // Disable network requests
   window.fetch = () => Promise.reject(new Error('Network disabled'))
   window.XMLHttpRequest = function () {
     throw new Error('Network disabled')
