@@ -110,7 +110,8 @@ function dateGraph() {
   store.commit('setDateGraph', `${day}/${month}-${day1}/${month1}`)
   store.dispatch('generateGraph')
 }
-//fetch
+
+//fetch data
 function getNoonTime() {
   const now = new Date()
   now.setHours(12, 0, 0, 0)
