@@ -27,15 +27,8 @@ jobs:
       - name: Build the project
         run: npm run build
         env:
-          VITE_CLIENT_ID: ${{ secrets.VITE_CLIENT_ID }}
-          VITE_SECRET: ${{ secrets.VITE_SECRET }}
-          VITE_API_HOST: ${{ secrets.VITE_API_HOST }}
-          VITE_DEVICE_ID: ${{ secrets.VITE_DEVICE_ID }}
-          VITE_LOGIN_URL: ${{ secrets.VITE_LOGIN_URL }}
-          VITE_LOGIN1: ${{ secrets.VITE_LOGIN1 }}
-          VITE_LOGIN2: ${{ secrets.VITE_LOGIN2}}
-          VITE_COOKIES: ${{ secrets.VITE_COOKIES }}
-          VITE_LOGIN_URL2: ${{ secrets.VITE_LOGIN_URL2 }}
+          VITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
+          VITE_GOOGLE_SHEET_ID: ${{ secrets.VITE_GOOGLE_SHEET_ID }}
           VITE_NAME: ${{ secrets.VITE_NAME }}
 
       - name: Deploy to GitHub Pages

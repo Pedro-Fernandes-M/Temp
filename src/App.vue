@@ -7,13 +7,9 @@
 </template>
 
 <script setup>
-//import { onBeforeUnmount } from 'vue'
 import { RouterView } from 'vue-router'
-//import { useStore } from 'vuex'
 
-//const store = useStore()
-
-/* document.addEventListener('contextmenu', (event) => event.preventDefault())
+document.addEventListener('contextmenu', (event) => event.preventDefault())
 
 document.addEventListener('keydown', (event) => {
   if (
@@ -83,7 +79,7 @@ function stopApp() {
   throw new Error('DevTools detected! App execution stopped.')
 }
 // Call the detection function
-detectDevTools() */
+detectDevTools()
 </script>
 
 <style>
