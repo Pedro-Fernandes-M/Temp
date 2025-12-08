@@ -130,7 +130,6 @@ async function getLog() {
   store.commit('setLoading')
   let records = JSON.parse(localStorage.getItem('records'))
   if (records) {
-    console.log(records)
     const day = new Date().getDate()
     const month = new Date().getMonth() + 1
     const year = new Date().getFullYear().toString().slice(-2)
@@ -146,6 +145,7 @@ async function getLog() {
       store.commit('clearLog')
       store.commit('setLink', null)
       store.commit('setLog', records.data)
+      store.commit('setLoading')
       return
     } else {
       store.commit('clearLog')
@@ -157,10 +157,11 @@ async function getLog() {
       if (i > 0) {
         await store.dispatch('getData')
         store.commit('setLoading')
+      } else {
+        store.commit('setLoading')
       }
     }
   } else {
-    console.log('oi')
     await store.dispatch('getData')
     store.commit('setLoading')
   }

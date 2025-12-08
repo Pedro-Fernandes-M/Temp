@@ -68,7 +68,6 @@ const store = createStore({
       state.refresh_token = refreshToken
     },
     setLog(state, log) {
-      console.log(log)
       if (Array.isArray(log)) {
         // Pequena otimização: suporta array direto ou log individual
         log.forEach((element) => {
