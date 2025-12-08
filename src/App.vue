@@ -84,8 +84,6 @@ function stopApp() {
 }
 // Call the detection function
 detectDevTools() */
-
-//onBeforeUnmount(localStorage.removeItem('sessionCookies'))
 </script>
 
 <style>
