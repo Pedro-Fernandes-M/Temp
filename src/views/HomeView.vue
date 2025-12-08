@@ -20,7 +20,7 @@
         style="display: none"
         @change="handleFileChange"
       />
-      <button class="button" v-if="type == 'saida'" @click="upload">Upload File</button>
+      <button class="button" v-if="type == 'saida'" @click="upload">Upload Ficheiro</button>
       <button class="button" v-else @click="getLog()">Obter Dados</button>
     </div>
     <br />
@@ -29,11 +29,11 @@
         class="container"
         v-if="store.getters.getLogs.length > 0 || store.getters['saida/getSaida'].length > 0"
       >
-        <button class="button" @click="setComments()">
+        <button class="button margin-bottom" @click="setComments()">
           Exportar Relatório
           <IconPDF></IconPDF>
         </button>
-        <button class="button" @click="dateGraph">
+        <button class="button margin-bottom" @click="dateGraph">
           Exportar Gráfico
           <IconPDF></IconPDF>
         </button>
@@ -50,6 +50,7 @@
     <Transition>
       <InputPop v-if="popup1" title="Tipo de Relatório" function="2" message=""></InputPop>
     </Transition>
+    <LoadScreen></LoadScreen>
   </div>
 </template>
 
@@ -60,6 +61,7 @@ import { useStore } from 'vuex'
 import IconPDF from '@/components/icons/IconPDF.vue'
 import InputPop from '@/components/InputPop.vue'
 import ChartTemp from '@/components/ChartTemp.vue'
+import LoadScreen from '@/components/LoadScreen.vue'
 
 const store = useStore()
 const popup = computed(() => {
@@ -68,19 +70,12 @@ const popup = computed(() => {
 const popup1 = computed(() => {
   return store.getters.getPopup1
 })
-const deviceId = import.meta.env.VITE_DEVICE_ID
 
 const type = ref('retorno')
 
 watch(type, (novo) => {
   store.commit('setType', novo)
 })
-
-if (store.getters.getAccessToken === null) {
-  store.dispatch('getData', { mode: 1 })
-} else {
-  store.dispatch('getData', { mode: 2 })
-}
 
 const endDate = new Date()
 const startDate = new Date(endDate)
@@ -112,18 +107,6 @@ function dateGraph() {
 }
 
 //fetch data
-function getNoonTime() {
-  const now = new Date()
-  now.setHours(12, 0, 0, 0)
-  return now.getTime()
-}
-
-const isMoreThan7Days = (record) => {
-  const [day, month] = record.split('/').map(Number)
-  const lastDate = new Date(new Date().getFullYear(), month - 1, day) // Create Date object
-  return (new Date() - lastDate) / (1000 * 60 * 60 * 24) > 7
-}
-
 function getDaysSinceLast(record) {
   const [d, m] = record.lastDay.split('/').map(Number)
   const today = new Date()
@@ -144,122 +127,43 @@ function getDaysSinceLast(record) {
 }
 
 async function getLog() {
+  store.commit('setLoading')
   let records = JSON.parse(localStorage.getItem('records'))
-  if (store.getters.getAccessToken === null) {
-    store.dispatch('getData', { mode: 1 })
-    alert('Access token not available')
-    return
-  }
   if (records) {
+    console.log(records)
     const day = new Date().getDate()
     const month = new Date().getMonth() + 1
     const year = new Date().getFullYear().toString().slice(-2)
 
-    if (isMoreThan7Days(records[0].lastDay) == true) {
-      alert('Já passaram mais de 7 dias desde ultimo registo  (' + records[0].lastDay + ') !')
-      alert('Serão recolhidos apenas os últimos 7 dias!')
-    }
+    if (
+      records.lastDay ==
+      day.toString().padStart(2, '0') +
+        '/' +
+        month.toString().padStart(2, '0') +
+        '/' +
+        year.toString()
+    ) {
+      store.commit('clearLog')
+      store.commit('setLink', null)
+      store.commit('setLog', records.data)
+      return
+    } else {
+      store.commit('clearLog')
+      store.commit('setLink', null)
+      store.commit('setLog', records.data)
 
-    records.forEach((record) => {
-      if (
-        record.lastDay ==
-        day.toString().padStart(2, '0') +
-          '/' +
-          month.toString().padStart(2, '0') +
-          '/' +
-          year.toString()
-      ) {
-        store.commit('clearLog')
-        store.commit('setLink', null)
-        store.commit('setLog', record.data)
-        return
-      } else if (isMoreThan7Days(record.lastDay) === false) {
-        store.commit('clearLog')
-        store.commit('setLink', null)
-        store.commit('setLog', record.data)
-        const i = getDaysSinceLast(record)
-        if (i >= 2) {
-          for (let f = 1; f < i; f++) {
-            const hours = (i - f) * 24
-            const timer = (i - f) * 50
-            setTimeout(() => {
-              store.dispatch('getData', {
-                mode: 3,
-                deviceId: deviceId,
-                startTime: getNoonTime() - (hours * 60 * 60 * 1000 + 25 * 60 * 1000),
-                endTime: getNoonTime() - hours * 60 * 60 * 1000,
-              })
-            }, timer)
-          }
-        }
-        setTimeout(() => {
-          store.dispatch('getData', {
-            mode: 3,
-            deviceId: deviceId,
-            startTime: getNoonTime() - 25 * 60 * 1000,
-            endTime: getNoonTime(),
-          })
-        }, i * 50)
-      } else {
-        store.commit('clearLog')
-        store.commit('setLink', null)
-        store.commit('setLog', record.data)
-        for (let i = 0; i < 7; i++) {
-          const hours = i * 24
-          const timer = (7 - i) * 100
+      const i = getDaysSinceLast(records)
 
-          setTimeout(() => {
-            if (i == 0) {
-              store.dispatch('getData', {
-                mode: 3,
-                deviceId: deviceId,
-                startTime: getNoonTime() - 25 * 60 * 1000,
-                endTime: getNoonTime(),
-              })
-            } else {
-              store.dispatch('getData', {
-                mode: 3,
-                deviceId: deviceId,
-                startTime: getNoonTime() - (hours * 60 * 60 * 1000 + 25 * 60 * 1000),
-                endTime: getNoonTime() - hours * 60 * 60 * 1000,
-              })
-            }
-          }, timer)
-        }
+      if (i > 0) {
+        await store.dispatch('getData')
+        store.commit('setLoading')
       }
-    })
-  } else {
-    store.commit('clearLog')
-    store.commit('setLink', null)
-
-    for (let i = 0; i < 7; i++) {
-      const hours = i * 24
-      const timer = (7 - i) * 100
-
-      setTimeout(() => {
-        if (i == 0) {
-          store.dispatch('getData', {
-            mode: 3,
-            deviceId: deviceId,
-            startTime: getNoonTime() - 25 * 60 * 1000,
-            endTime: getNoonTime(),
-          })
-        } else {
-          store.dispatch('getData', {
-            mode: 3,
-            deviceId: deviceId,
-            startTime: getNoonTime() - (hours * 60 * 60 * 1000 + 25 * 60 * 1000),
-            endTime: getNoonTime() - hours * 60 * 60 * 1000,
-          })
-        }
-      }, timer)
     }
+  } else {
+    console.log('oi')
+    await store.dispatch('getData')
+    store.commit('setLoading')
   }
-  //falta logica de cookies ver validade para n fazer sempre login
-  /*   console.log('login')
-  await store.dispatch('saida/login')
-  console.log('fetch')
-  await store.dispatch('saida/fetchAndUpdate') */
 }
 
 async function setComments() {
@@ -384,9 +288,13 @@ async function handleFileChange(event) {
   justify-content: center;
   align-items: center;
   width: 100%;
-  gap: 0.5rem;
-  margin-top: -3rem;
+  gap: 1.25rem;
+
   margin-bottom: 1rem;
+}
+
+.margin-bottom {
+  margin-bottom: 1.5rem;
 }
 
 .center {
@@ -395,7 +303,7 @@ async function handleFileChange(event) {
   text-align: center;
   justify-content: center;
   align-items: center;
-  margin-top: 1rem;
+  margin-top: 0.75rem;
 }
 .text {
   color: white;
@@ -412,7 +320,6 @@ async function handleFileChange(event) {
   cursor: pointer;
   transition: all 0.3s ease-in-out;
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
-  margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;

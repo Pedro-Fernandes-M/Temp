@@ -13,7 +13,7 @@ import { RouterView } from 'vue-router'
 
 //const store = useStore()
 
-document.addEventListener('contextmenu', (event) => event.preventDefault())
+/* document.addEventListener('contextmenu', (event) => event.preventDefault())
 
 document.addEventListener('keydown', (event) => {
   if (
@@ -83,7 +83,7 @@ function stopApp() {
   throw new Error('DevTools detected! App execution stopped.')
 }
 // Call the detection function
-detectDevTools()
+detectDevTools() */
 
 //onBeforeUnmount(localStorage.removeItem('sessionCookies'))
 </script>

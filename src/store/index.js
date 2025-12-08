@@ -1,5 +1,4 @@
 import { createStore } from 'vuex'
-import CryptoJS from 'crypto-js'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import html2canvas from 'html2canvas'
 import saida from './saida'
@@ -18,6 +17,7 @@ const store = createStore({
     pdf: false,
     mesEsc: null,
     type: 'retorno',
+    loading: false,
   },
   getters: {
     getAccessToken(state) {
@@ -56,6 +56,9 @@ const store = createStore({
     getType(state) {
       return state.type
     },
+    getLoading(state) {
+      return state.loading
+    },
   },
   mutations: {
     setAccessToken(state, accessToken) {
@@ -65,7 +68,9 @@ const store = createStore({
       state.refresh_token = refreshToken
     },
     setLog(state, log) {
-      if (log.length > 1) {
+      console.log(log)
+      if (Array.isArray(log)) {
+        // Pequena otimização: suporta array direto ou log individual
         log.forEach((element) => {
           const newElement = {
             day: element.day,
@@ -76,7 +81,14 @@ const store = createStore({
           state.logs.push(newElement)
         })
       } else {
-        state.logs.push(log)
+        // Fallback para o comportamento antigo se vier um objeto único
+        const newElement = {
+          day: log.day,
+          event_time: log.event_time,
+          value: log.value,
+          comment: log.comment || '',
+        }
+        state.logs.push(newElement)
       }
     },
     clearLog(state) {
@@ -112,210 +124,113 @@ const store = createStore({
     setType(state, payload) {
       state.type = payload
     },
+    setLoading(state) {
+      state.loading = !state.loading
+    },
   },
 
   actions: {
-    async getData(state, payload) {
-      function setData(data) {
-        let date = new Date(data)
-        let dia = date.getDate()
-        let month = (date.getMonth() + 1).toString().padStart(2, '0')
+    async getData({ commit, getters, dispatch }) {
+      try {
+        const currentLogs = getters.getLogs
+        let lastDateNormalized = 0 // Timestamp normalizado à meia-noite
 
-        // Exibir a data no formato 'dia/mês/ano'
-        let dataFormatada =
-          dia < 10 ? `${dia.toString().padStart(2, '0')}` + '/' + month : `${dia + '/' + month}`
-        return dataFormatada
-      }
+        // 1. Obter a DATA do último registo (ignorando as horas/minutos)
+        if (currentLogs && currentLogs.length > 0) {
+          const lastTs = Number(currentLogs[currentLogs.length - 1].event_time)
+          const d = new Date(lastTs)
+          d.setHours(0, 0, 0, 0) // Zera as horas para comparar apenas o dia
+          lastDateNormalized = d.getTime()
+        }
+        // Fallback para LocalStorage se a store estiver vazia
+        else {
+          const records = JSON.parse(localStorage.getItem('records'))
+          if (records && records.length > 0) {
+            const lastBlock = records[records.length - 1]
+            if (lastBlock.data && lastBlock.data.length > 0) {
+              const lastLog = lastBlock.data[lastBlock.data.length - 1]
+              const d = new Date(Number(lastLog.event_time))
+              d.setHours(0, 0, 0, 0)
+              lastDateNormalized = d.getTime()
+            }
+          }
+        }
 
-      function calculateDailyAverages(records) {
-        // Step 1: Group records by day (event_time is just the day, like 27)
-        const day = records[0].day
-        let totalValue = 0
-        let count = 0
+        console.log(
+          `Verificando novos dias após: ${new Date(lastDateNormalized).toLocaleDateString()}`,
+        )
 
-        records.forEach((record) => {
-          totalValue += record.value / 10
-          count += 1
+        const year = new Date().getFullYear().toString()
+        const apiKey = import.meta.env.VITE_GOOGLE_API_KEY
+        const sheetId = import.meta.env.VITE_GOOGLE_SHEET_ID
+        const range = `${year}!A:B`
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`
+
+        const response = await fetch(url)
+        const result = await response.json()
+
+        if (!result.values || result.values.length === 0) return
+
+        // 2. Filtro CORRIGIDO: Compara Dias e não Momentos
+        const newRows = result.values.filter((row) => {
+          const rowTimestamp = Number(row[1])
+          if (isNaN(rowTimestamp)) return false
+
+          // Normaliza a data da linha para meia-noite
+          const rowDate = new Date(rowTimestamp)
+          rowDate.setHours(0, 0, 0, 0)
+          const rowDateNormalized = rowDate.getTime()
+
+          // SÓ ACEITA se o dia for > que o último dia guardado
+          // Isto elimina duplicados do mesmo dia com horas diferentes
+          return rowDateNormalized > lastDateNormalized
         })
 
-        const event_time = records[((records.length - 1) / 2).toFixed(0)].event_time
-        const newRecord = {
-          event_time: event_time,
-          day: day,
-          value: (totalValue / count).toFixed(1),
-          comment: '',
-        }
-        return newRecord
-      }
-
-      // Function to get the current timestamp
-      function getTime() {
-        return new Date().getTime()
-      }
-
-      // Function to calculate the signature
-      function calcSign(clientId, timestamp, nonce, signStr, secret) {
-        const str = clientId + timestamp + nonce + signStr
-        const hash = CryptoJS.HmacSHA256(str, secret)
-        return hash.toString(CryptoJS.enc.Hex).toUpperCase()
-      }
-
-      function calcSignB(clientId, accessToken, timestamp, nonce, signStr, secret) {
-        var str = clientId + accessToken + timestamp + nonce + signStr
-        var hash = CryptoJS.HmacSHA256(str, secret)
-        var hashInBase64 = hash.toString()
-        var signUp = hashInBase64.toUpperCase()
-        return signUp
-      }
-
-      // Function to generate the signature string
-      function stringToSign(query, method) {
-        let url = ''
-        let sha256 = CryptoJS.SHA256('')
-        let headersStr = ''
-
-        // Add query parameters to the URL
-        if (query) {
-          const queryParams = new URLSearchParams(query)
-          if (payload.mode === 1) url = `/v1.0/token?${queryParams.toString()}`
-          else if (payload.mode === 2 && state.getters.getRefreshToken != null)
-            url = `/v1.0/token/${state.getters.getRefreshToken}`
-          else if (payload.mode === 3 && state.getters.getAccessToken != null) {
-            url = `/v1.0/devices/${payload.deviceId}/logs?${queryParams.toString()}`
-          } else {
-            alert('Access token or refresh token is null!')
-          }
+        if (newRows.length === 0) {
+          console.log('Nenhum dia novo encontrado.')
+          return
         }
 
-        // Construct the signature string
-        const signStr = `${method.toUpperCase()}\n${sha256}\n${headersStr}\n${url}`
+        // 3. Formatar e Guardar (igual ao anterior)
+        const formattedLogs = newRows.map((row) => {
+          const timestamp = Number(row[1])
+          const dateObj = new Date(timestamp)
 
-        return { url, signStr }
-      }
+          const day = String(dateObj.getDate()).padStart(2, '0')
+          const month = String(dateObj.getMonth() + 1).padStart(2, '0')
 
-      // Your API request function
-      function makeApiRequest() {
-        const clientId = import.meta.env.VITE_CLIENT_ID
-        const secret = import.meta.env.VITE_SECRET
-        const nonce = ''
-        let query = 'grant_type=1'
-        const method = 'GET'
-
-        if (payload.mode === 3) {
-          query = {
-            codes: 'temp_current',
-            end_time: payload.endTime,
-            start_time: payload.startTime,
-            type: '7',
+          return {
+            day: `${day}/${month}`,
+            event_time: timestamp,
+            value: String(row[0]).replace(',', '.'),
+            comment: '',
           }
-        }
-
-        // Generate the signature
-        const { signStr, url } = stringToSign(query, method, secret)
-        const timestamp = getTime()
-        const sign =
-          payload.mode === 1 || payload.mode === 2
-            ? calcSign(clientId, timestamp, nonce, signStr, secret)
-            : calcSignB(clientId, state.getters.getAccessToken, timestamp, nonce, signStr, secret)
-
-        // Set the request headers
-        let headers = null
-        if (payload.mode === 1 || payload.mode === 2) {
-          headers = {
-            client_id: clientId,
-            sign: sign,
-            t: timestamp,
-            sign_method: 'HMAC-SHA256',
-            mode: 'cors',
-            nonce: nonce,
-          }
-        } else if (payload.mode === 3) {
-          headers = {
-            client_id: clientId,
-            access_token: state.getters.getAccessToken,
-            sign: sign,
-            t: timestamp,
-            sign_method: 'HMAC-SHA256',
-            mode: 'cors',
-            'Content-Type': 'application/json',
-          }
-        }
-
-        // Make the axios request
-        fetch(import.meta.env.VITE_API_HOST + url, {
-          method: 'GET',
-          headers: headers, // Use the headers object directly
         })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`)
-            }
-            return response.json()
-          })
-          .then((data) => {
-            if (payload.mode === 1 || payload.mode === 2) {
-              state.commit('setAccessToken', data.result.access_token)
-              state.commit('setRefreshToken', data.result.refresh_token)
-              setTimeout(() => {
-                state.dispatch('getData', { mode: 2 })
-              }, data.result.expire_time - 300)
-            } else if (payload.mode === 3) {
-              if (
-                data?.msg ===
-                'No permissions. Your subscription to cloud development plan has expired.'
-              ) {
-                alert('No permissions. Your subscription to cloud development plan has expired.')
-                return
-              }
-              let logs = data?.result?.logs
-              const array = []
-              logs.forEach((element) => {
-                const newElement = {
-                  value: element.value,
-                  event_time: element.event_time,
-                  day: setData(element.event_time),
-                  comment: element.comment || [],
-                }
-                array.push(newElement)
-              })
 
-              if (logs.length > 0) {
-                logs = calculateDailyAverages(array)
-                state.commit('setLog', logs)
-              }
-              if (state.getters.getLogs.length > 1) state.dispatch('sortLogs')
-            }
-          })
-          .catch((error) => {
-            console.error('Error:', error)
-            if (error.msg === 'token is expired') {
-              alert('Token expirado! Por favor, efetue o login novamente.')
-              state.commit('setAccessToken', null)
-              state.commit('setRefreshToken', null)
-              state.dispatch('getData', { mode: 1 })
-            }
-          })
+        commit('setLog', formattedLogs)
+
+        dispatch('sortLogs').then(() => {
+          dispatch('saveData')
+        })
+
+        console.log(`${formattedLogs.length} novos dias adicionados.`)
+      } catch (error) {
+        console.error('Erro no getData:', error)
       }
-
-      // Call the API request function
-      makeApiRequest()
     },
     sortLogs(state) {
       const logs = state.getters.getLogs
+      // Pequena proteção caso logs seja null
+      if (!logs) return
 
-      const sortLogs = logs?.sort((a, b) => {
-        // Extract day and month from the "day" field (format: DD/MM)
+      const sortLogs = logs.sort((a, b) => {
         const [dayA, monthA] = a.day.split('/').map(Number)
         const [dayB, monthB] = b.day.split('/').map(Number)
-
-        // Sort by month first
-        if (monthA !== monthB) {
-          return monthA - monthB
-        }
-        // Then sort by day
+        if (monthA !== monthB) return monthA - monthB
         return dayA - dayB
       })
       state.commit('clearLog')
+      // Passa o array inteiro, a mutation atualizada lida com isso (performance++)
       state.commit('setLog', sortLogs)
     },
     async createPDF(state) {
@@ -540,46 +455,29 @@ const store = createStore({
         state.dispatch('saveData')
       }
     },
-    saveData() {
-      let records = JSON.parse(localStorage.getItem('records'))
+    saveData({ getters }) {
+      const logs = getters.getLogs
 
-      const [firstDay, lastDay] = [
-        store.getters.getLogs[0].day,
-        store.getters.getLogs[store.getters.getLogs.length - 1].day,
-      ]
-      if (records) {
-        records.forEach((record) => {
-          if (
-            record.firstDay.split('/').slice(0, 2).join('/') === firstDay &&
-            record.lastDay.split('/').slice(0, 2).join('/') === lastDay
-          ) {
-            return
-          } else {
-            const save = store.getters.getLogs
+      // Se não houver logs, não fazemos nada
+      if (!logs || logs.length === 0) return
 
-            const newRecords = [
-              {
-                firstDay: save[0].day + '/' + (new Date().getFullYear() % 100),
-                lastDay: save[save.length - 1].day + '/' + (new Date().getFullYear() % 100),
-                data: save,
-              },
-            ]
-            localStorage.setItem('records', null)
-            localStorage.setItem('records', JSON.stringify(newRecords))
-          }
-        })
-      } else {
-        localStorage.setItem(
-          'records',
-          JSON.stringify([
-            {
-              firstDay: firstDay + '/' + (new Date().getFullYear() % 100),
-              lastDay: lastDay + '/' + (new Date().getFullYear() % 100),
-              data: store.getters.getLogs,
-            },
-          ]),
-        )
+      // Função auxiliar para garantir que o ano está lá (ex: "01/03" -> "01/03/25")
+      const currentYear = new Date().getFullYear() % 100
+      const formatDate = (dateStr) => {
+        if (!dateStr) return ''
+        // Se a data já tiver 3 partes (DD/MM/YY), devolve como está. Se tiver 2, adiciona o ano.
+        return dateStr.split('/').length === 2 ? `${dateStr}/${currentYear}` : dateStr
       }
+
+      // Cria o objeto ÚNICO com a estrutura exata que pediste
+      const recordObj = {
+        firstDay: formatDate(logs[0].day),
+        lastDay: formatDate(logs[logs.length - 1].day),
+        data: logs, // Aqui vai a lista completa de objetos
+      }
+
+      // Grava diretamente o objeto (sem ser dentro de um array)
+      localStorage.setItem('records', JSON.stringify(recordObj))
     },
     async generateGraph(state) {
       // Capturando o gráfico como imagem usando html2canvas
