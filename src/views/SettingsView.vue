@@ -104,7 +104,7 @@ function guardar() {
   border-radius: 1.5rem;
   /* Sombra para dar profundidade e destacar do fundo */
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  width: 320px; /* Largura fixa para consistência */
+  width: 20rem; /* Largura fixa para consistência */
   transition: transform 0.2s ease;
 }
 
