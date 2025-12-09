@@ -35,15 +35,15 @@ onBeforeMount(getSettings)
 const store = useStore()
 
 const key = computed(() => {
-  return store.getters.getKey || ref('')
+  return store.getters.getKey || ''
 })
 
 const sheetId = computed(() => {
-  return store.getters.getSheetId || ref('')
+  return store.getters.getSheetId || ''
 })
 
 const nome = computed(() => {
-  return store.getters.getNome || ref('')
+  return store.getters.getNome || ''
 })
 
 const key1 = ref(null)
