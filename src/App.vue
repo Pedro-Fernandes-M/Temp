@@ -20,7 +20,7 @@ function getSettings() {
 }
 onBeforeMount(getSettings)
 
-document.addEventListener('contextmenu', (event) => event.preventDefault())
+/* document.addEventListener('contextmenu', (event) => event.preventDefault())
 
 document.addEventListener('keydown', (event) => {
   if (
@@ -90,7 +90,7 @@ function stopApp() {
   throw new Error('DevTools detected! App execution stopped.')
 }
 // Call the detection function
-detectDevTools()
+detectDevTools() */
 </script>
 
 <style>
