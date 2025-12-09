@@ -7,7 +7,18 @@
 </template>
 
 <script setup>
+import { onBeforeMount } from 'vue'
 import { RouterView } from 'vue-router'
+import { useStore } from 'vuex'
+
+const store = useStore()
+
+function getSettings() {
+  store.commit('setKey', { value: JSON.parse(localStorage.getItem('key')), mode: 0 })
+  store.commit('setSheetId', { value: JSON.parse(localStorage.getItem('sheetId')), mode: 0 })
+  store.commit('setNome', { value: JSON.parse(localStorage.getItem('nome')) || '', mode: 0 })
+}
+onBeforeMount(getSettings)
 
 document.addEventListener('contextmenu', (event) => event.preventDefault())
 

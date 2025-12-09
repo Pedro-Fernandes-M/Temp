@@ -1,6 +1,9 @@
 <template>
   <div class="justify">
     <div class="div">
+      <div class="top" @click="$router.push('/settings')">
+        <IconSettings></IconSettings>
+      </div>
       <h3>Gráfico</h3>
       <select name="" id="" v-model="type">
         <option value="retorno">Temp. Retorno</option>
@@ -58,6 +61,7 @@
 import { computed, ref, watch } from 'vue'
 import { useStore } from 'vuex'
 
+import IconSettings from '@/components/icons/IconSettings.vue'
 import IconPDF from '@/components/icons/IconPDF.vue'
 import InputPop from '@/components/InputPop.vue'
 import ChartTemp from '@/components/ChartTemp.vue'
@@ -266,6 +270,12 @@ async function handleFileChange(event) {
   width: 120%;
   height: 50%;
   margin-top: 0.5rem;
+}
+.top {
+  position: fixed;
+  top: 0;
+  right: 0;
+  margin: 1rem;
 }
 .flex {
   display: flex;

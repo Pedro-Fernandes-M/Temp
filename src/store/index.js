@@ -18,6 +18,9 @@ const store = createStore({
     mesEsc: null,
     type: 'retorno',
     loading: false,
+    key: null,
+    sheetId: null,
+    nome: ' ',
   },
   getters: {
     getAccessToken(state) {
@@ -58,6 +61,15 @@ const store = createStore({
     },
     getLoading(state) {
       return state.loading
+    },
+    getKey(state) {
+      return state.key
+    },
+    getSheetId(state) {
+      return state.sheetId
+    },
+    getNome(state) {
+      return state.nome
     },
   },
   mutations: {
@@ -126,6 +138,24 @@ const store = createStore({
     setLoading(state) {
       state.loading = !state.loading
     },
+    setKey(state, payload) {
+      state.key = payload.value
+      if (payload.mode === 1) {
+        localStorage.setItem('key', JSON.stringify(payload.value))
+      }
+    },
+    setSheetId(state, payload) {
+      state.sheetId = payload.value
+      if (payload.mode === 1) {
+        localStorage.setItem('sheetId', JSON.stringify(payload.value))
+      }
+    },
+    setNome(state, payload) {
+      state.nome = payload.value
+      if (payload.mode === 1) {
+        localStorage.setItem('nome', JSON.stringify(payload.value))
+      }
+    },
   },
 
   actions: {
@@ -160,12 +190,15 @@ const store = createStore({
         )
 
         const year = new Date().getFullYear().toString()
-        const apiKey = import.meta.env.VITE_GOOGLE_API_KEY
-        const sheetId = import.meta.env.VITE_GOOGLE_SHEET_ID
+        const apiKey = getters.getKey
+        const sheetId = getters.getSheetId
         const range = `${year}!A:B`
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`
 
         const response = await fetch(url)
+        if (response.status != 200) {
+          alert(response.status)
+        }
         const result = await response.json()
 
         if (!result.values || result.values.length === 0) return
@@ -186,7 +219,7 @@ const store = createStore({
         })
 
         if (newRows.length === 0) {
-          console.log('Nenhum dia novo encontrado.')
+          alert('Nenhum dia novo encontrado.')
           return
         }
 
@@ -299,7 +332,7 @@ const store = createStore({
           font: font,
         })
 
-        page.drawText(import.meta.env.VITE_NAME, {
+        page.drawText(state.getters.getNome, {
           x: margin,
           y: textYStart - 20,
           size: fontSize + 2,
@@ -509,7 +542,7 @@ const store = createStore({
         color: rgb(0, 0, 0),
       })
 
-      page.drawText(import.meta.env.VITE_NAME, {
+      page.drawText(state.getters.getNome, {
         x: margin,
         y: textYStart - 20,
         size: fontSize + 2,
