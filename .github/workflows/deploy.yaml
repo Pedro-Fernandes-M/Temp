@@ -26,8 +26,8 @@ jobs:
 
       - name: Build the project
         run: npm run build
-        env:
-          # variable exempleVITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
+        #env:
+        # variable exempleVITE_GOOGLE_API_KEY: ${{ secrets.VITE_GOOGLE_API_KEY }}
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
