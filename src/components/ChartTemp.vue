@@ -22,7 +22,7 @@
 
 <script setup>
 import { useStore } from 'vuex'
-import { ref, computed, toRaw } from 'vue'
+import { ref, computed } from 'vue'
 
 const store = useStore()
 const props = defineProps(['date'])
@@ -31,24 +31,36 @@ const type = computed(() => {
 })
 
 const yAxis = computed(() => {
+  // 1. Obter os logs da store
   const logs = type.value == 'retorno' ? store.getters.getLogs : store.getters['saida/getSaida']
-  let filtered = []
+
+  // Proteção se logs for null/undefined
+  if (!logs) return []
+
+  let processedLogs = []
+
+  // 2. Lógica de Filtro
   if (props.date) {
-    const start = props.date[0]
-    const end = props.date[1]
-    start.setHours(0, 0, 0, 0)
-    end.setHours(23, 59, 59, 999)
-    const logs1 = toRaw(logs)
-    filtered = logs1.filter((log) => log.event_time >= start && log.event_time <= end)
-    return filtered.map((log) => {
-      return { x: log.day.split('/').slice(0, 2).join('/'), y: log.value }
-    })
+    const start = new Date(props.date[0])
+    const end = new Date(props.date[1])
+
+    // Converter para timestamp para garantir comparação numérica correta
+    const startTime = start.setHours(0, 0, 0, 0)
+    const endTime = end.setHours(23, 59, 59, 999)
+
+    // O .filter cria um novo array, por isso é seguro mexer nele
+    processedLogs = logs.filter((log) => log.event_time >= startTime && log.event_time <= endTime)
+  } else {
+    // IMPORTANTE: Se não filtrarmos, temos de criar uma cópia com [...logs]
+    // Se fizeres sort() direto no 'logs', vais dar erro no Vuex (mutação de estado)
+    processedLogs = [...logs]
   }
-  return logs.map((log) => {
-    return { x: log.day.split('/').slice(0, 2).join('/'), y: log.value }
+
+  // 4. Mapeamento Final
+  return processedLogs.map((log) => {
+    return { x: log.day, y: parseFloat(log.value) }
   })
 })
-
 const max = computed(() => {
   return Math.max(...yAxis.value.map((d) => d.y)) + 1
 })

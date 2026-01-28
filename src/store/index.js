@@ -79,28 +79,18 @@ const store = createStore({
     setRefreshToken(state, refreshToken) {
       state.refresh_token = refreshToken
     },
-    setLog(state, log) {
-      if (Array.isArray(log)) {
-        // Pequena otimização: suporta array direto ou log individual
-        log.forEach((element) => {
-          const newElement = {
-            day: element.day,
-            event_time: element.event_time,
-            value: element.value,
-            comment: element.comment || '',
-          }
-          state.logs.push(newElement)
-        })
+    setLog(state, logs) {
+      state.logs = Array.isArray(logs) ? logs : [logs]
+    },
+    addLog(state, newLogs) {
+      if (Array.isArray(newLogs)) {
+        // Adiciona vários
+        state.logs.push(...newLogs)
       } else {
-        // Fallback para o comportamento antigo se vier um objeto único
-        const newElement = {
-          day: log.day,
-          event_time: log.event_time,
-          value: log.value,
-          comment: log.comment || '',
-        }
-        state.logs.push(newElement)
+        // Adiciona um
+        state.logs.push(newLogs)
       }
+      console.log('Novos registos adicionados. Total:', state.logs.length)
     },
     clearLog(state) {
       state.logs = []
@@ -162,17 +152,16 @@ const store = createStore({
     async getData({ commit, getters, dispatch }) {
       try {
         const currentLogs = getters.getLogs
-        let lastDateNormalized = 0 // Timestamp normalizado à meia-noite
+        let lastDateNormalized = 0
 
-        // 1. Obter a DATA do último registo (ignorando as horas/minutos)
+        // 1. Obter a DATA do último registo
         if (currentLogs && currentLogs.length > 0) {
           const lastTs = Number(currentLogs[currentLogs.length - 1].event_time)
           const d = new Date(lastTs)
-          d.setHours(0, 0, 0, 0) // Zera as horas para comparar apenas o dia
+          d.setHours(0, 0, 0, 0)
           lastDateNormalized = d.getTime()
-        }
-        // Fallback para LocalStorage se a store estiver vazia
-        else {
+        } else {
+          // Fallback LocalStorage (igual ao teu código original)
           const records = JSON.parse(localStorage.getItem('records'))
           if (records && records.length > 0) {
             const lastBlock = records[records.length - 1]
@@ -189,42 +178,79 @@ const store = createStore({
           `Verificando novos dias após: ${new Date(lastDateNormalized).toLocaleDateString()}`,
         )
 
-        const year = new Date().getFullYear().toString()
+        // --- LÓGICA DE MUDANÇA DE ANO AQUI ---
+
+        const currentYear = new Date().getFullYear()
+        // Se tivermos data, usamos o ano dessa data. Se for 0 (novo utilizador), usamos o ano atual.
+        const lastRecordedYear =
+          lastDateNormalized > 0 ? new Date(lastDateNormalized).getFullYear() : 2025
+
         const apiKey = getters.getKey
         const sheetId = getters.getSheetId
-        const range = `${year}!A:B`
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`
 
-        const response = await fetch(url)
-        if (response.status != 200) {
-          alert(response.status)
+        // Criar lista de anos para pesquisar (ex: de 2025 até 2026)
+        let yearsToFetch = []
+        for (let y = lastRecordedYear; y <= currentYear; y++) {
+          yearsToFetch.push(y.toString())
         }
-        const result = await response.json()
 
-        if (!result.values || result.values.length === 0) return
+        // Array para acumular todas as linhas de todos os anos consultados
+        let allNewRows = []
 
-        // 2. Filtro CORRIGIDO: Compara Dias e não Momentos
-        const newRows = result.values.filter((row) => {
+        // 2. Iterar sobre os anos e fazer os pedidos
+        for (const year of yearsToFetch) {
+          const range = `${year}!A:B`
+          const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`
+
+          console.log(`Fetching year: ${year} -> ${url}`)
+
+          try {
+            const response = await fetch(url)
+
+            // Se uma folha antiga não existir ou der erro, ignoramos e continuamos para o próximo ano
+            if (response.status !== 200) {
+              console.warn(
+                `Não foi possível obter dados para o ano ${year}. Status: ${response.status}`,
+              )
+              continue
+            }
+
+            const result = await response.json()
+
+            if (result.values && result.values.length > 0) {
+              // Juntar os resultados encontrados
+              allNewRows = allNewRows.concat(result.values)
+            }
+          } catch (err) {
+            console.error(`Erro ao buscar ano ${year}:`, err)
+          }
+        }
+
+        if (allNewRows.length === 0) {
+          // Se após consultar todos os anos não houver dados
+          return
+        }
+
+        // 3. Filtro (Mantém a tua lógica, agora aplicada ao acumulado de anos)
+        const newRowsFiltered = allNewRows.filter((row) => {
           const rowTimestamp = Number(row[1])
           if (isNaN(rowTimestamp)) return false
 
-          // Normaliza a data da linha para meia-noite
           const rowDate = new Date(rowTimestamp)
           rowDate.setHours(0, 0, 0, 0)
           const rowDateNormalized = rowDate.getTime()
 
-          // SÓ ACEITA se o dia for > que o último dia guardado
-          // Isto elimina duplicados do mesmo dia com horas diferentes
+          // Garante que só entram dados FUTUROS ao último registo
           return rowDateNormalized > lastDateNormalized
         })
 
-        if (newRows.length === 0) {
-          alert('Nenhum dia novo encontrado.')
+        if (newRowsFiltered.length === 0) {
+          // alert('Nenhum dia novo encontrado.') // Opcional: remover o alert para não ser intrusivo
           return
         }
 
-        // 3. Formatar e Guardar (igual ao anterior)
-        const formattedLogs = newRows.map((row) => {
+        // 4. Formatar e Guardar
+        const formattedLogs = newRowsFiltered.map((row) => {
           const timestamp = Number(row[1])
           const dateObj = new Date(timestamp)
 
@@ -238,32 +264,39 @@ const store = createStore({
             comment: '',
           }
         })
-
-        commit('setLog', formattedLogs)
+        commit('addLog', formattedLogs)
 
         dispatch('sortLogs').then(() => {
           dispatch('saveData')
         })
 
-        console.log(`${formattedLogs.length} novos dias adicionados.`)
+        console.log(
+          `${formattedLogs.length} novos registos adicionados (processados de ${yearsToFetch.join(', ')}).`,
+        )
       } catch (error) {
         console.error('Erro no getData:', error)
       }
     },
-    sortLogs(state) {
-      const logs = state.getters.getLogs
-      // Pequena proteção caso logs seja null
+    sortLogs({ getters, commit }) {
+      const logs = getters.getLogs
       if (!logs) return
 
-      const sortLogs = logs.sort((a, b) => {
-        const [dayA, monthA] = a.day.split('/').map(Number)
-        const [dayB, monthB] = b.day.split('/').map(Number)
-        if (monthA !== monthB) return monthA - monthB
-        return dayA - dayB
+      // 1. Remover Duplicados (baseado no timestamp)
+      // O Map garante que só fica o último registo encontrado para aquele timestamp
+      const uniqueLogsMap = new Map()
+      logs.forEach((log) => {
+        uniqueLogsMap.set(Number(log.event_time), log)
       })
-      state.commit('clearLog')
-      // Passa o array inteiro, a mutation atualizada lida com isso (performance++)
-      state.commit('setLog', sortLogs)
+      const uniqueLogs = Array.from(uniqueLogsMap.values())
+
+      // 2. Ordenar pelo TIMESTAMP (Cronologia absoluta)
+      // Esquece o split('/') do dia/mês, usa o timestamp que é infalível
+      const sortedLogs = uniqueLogs.sort((a, b) => {
+        return Number(a.event_time) - Number(b.event_time)
+      })
+
+      // Commit da lista limpa e ordenada
+      commit('setLog', sortedLogs)
     },
     async createPDF(state) {
       const pdfDoc = await PDFDocument.create()
@@ -489,26 +522,26 @@ const store = createStore({
     },
     saveData({ getters }) {
       const logs = getters.getLogs
-
-      // Se não houver logs, não fazemos nada
       if (!logs || logs.length === 0) return
 
-      // Função auxiliar para garantir que o ano está lá (ex: "01/03" -> "01/03/25")
-      const currentYear = new Date().getFullYear() % 100
-      const formatDate = (dateStr) => {
-        if (!dateStr) return ''
-        // Se a data já tiver 3 partes (DD/MM/YY), devolve como está. Se tiver 2, adiciona o ano.
-        return dateStr.split('/').length === 2 ? `${dateStr}/${currentYear}` : dateStr
+      // Função auxiliar para formatar a data corretamente usando o timestamp real do registo
+      const formatDateFromTimestamp = (ts) => {
+        if (!ts) return ''
+        const d = new Date(Number(ts))
+        const day = String(d.getDate()).padStart(2, '0')
+        const month = String(d.getMonth() + 1).padStart(2, '0')
+        const year = String(d.getFullYear()).slice(-2) // Pega os últimos 2 dígitos (ex: 25, 26)
+        return `${day}/${month}/${year}`
       }
 
-      // Cria o objeto ÚNICO com a estrutura exata que pediste
+      // Como o array já está ordenado pelo sortLogs, o índice 0 é o mais antigo
+      // e o último índice é o mais recente, independentemente do ano.
       const recordObj = {
-        firstDay: formatDate(logs[0].day),
-        lastDay: formatDate(logs[logs.length - 1].day),
-        data: logs, // Aqui vai a lista completa de objetos
+        firstDay: formatDateFromTimestamp(logs[0].event_time),
+        lastDay: formatDateFromTimestamp(logs[logs.length - 1].event_time),
+        data: logs,
       }
 
-      // Grava diretamente o objeto (sem ser dentro de um array)
       localStorage.setItem('records', JSON.stringify(recordObj))
     },
     async generateGraph(state) {

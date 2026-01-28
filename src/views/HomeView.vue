@@ -158,7 +158,7 @@ async function getLog() {
 
       const i = getDaysSinceLast(records)
 
-      if (i > 0) {
+      if (i > 0 || i < 0) {
         await store.dispatch('getData')
         store.commit('setLoading')
       } else {
