@@ -1,6 +1,6 @@
 import './assets/main.css'
 import VueApexCharts from 'vue3-apexcharts'
-import VueDatePicker from '@vuepic/vue-datepicker'
+import { VueDatePicker } from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
 
 import { createApp } from 'vue'
