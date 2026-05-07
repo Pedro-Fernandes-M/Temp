@@ -31,36 +31,52 @@ const type = computed(() => {
 })
 
 const yAxis = computed(() => {
-  // 1. Obter os logs da store
+  // 1. Obter logs
   const logs = type.value == 'retorno' ? store.getters.getLogs : store.getters['saida/getSaida']
 
-  // Proteção se logs for null/undefined
   if (!logs) return []
 
   let processedLogs = []
 
-  // 2. Lógica de Filtro
+  // 2. Filtro por data
   if (props.date) {
     const start = new Date(props.date[0])
     const end = new Date(props.date[1])
 
-    // Converter para timestamp para garantir comparação numérica correta
     const startTime = start.setHours(0, 0, 0, 0)
     const endTime = end.setHours(23, 59, 59, 999)
 
-    // O .filter cria um novo array, por isso é seguro mexer nele
     processedLogs = logs.filter((log) => log.event_time >= startTime && log.event_time <= endTime)
   } else {
-    // IMPORTANTE: Se não filtrarmos, temos de criar uma cópia com [...logs]
-    // Se fizeres sort() direto no 'logs', vais dar erro no Vuex (mutação de estado)
     processedLogs = [...logs]
   }
 
-  // 4. Mapeamento Final
-  return processedLogs.map((log) => {
-    return { x: log.day, y: parseFloat(log.value) }
+  // 3. Remover duplicados por day
+  const seenDays = new Set()
+  const duplicatedDays = new Set()
+
+  processedLogs = processedLogs.filter((log) => {
+    if (seenDays.has(log.day)) {
+      duplicatedDays.add(log.day)
+      return false
+    }
+
+    seenDays.add(log.day)
+    return true
   })
+
+  // 4. Alert se houver duplicados
+  if (duplicatedDays.size > 0) {
+    alert(`Dias duplicados encontrados no gráfico: ${[...duplicatedDays].join(', ')}`)
+  }
+
+  // 5. Map final
+  return processedLogs.map((log) => ({
+    x: log.day,
+    y: parseFloat(log.value),
+  }))
 })
+
 const max = computed(() => {
   return Math.max(...yAxis.value.map((d) => d.y)) + 1
 })

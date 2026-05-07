@@ -202,8 +202,6 @@ const store = createStore({
           const range = `${year}!A:B`
           const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`
 
-          console.log(`Fetching year: ${year} -> ${url}`)
-
           try {
             const response = await fetch(url)
 
